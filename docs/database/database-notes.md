@@ -331,3 +331,39 @@ When a parent approves a chore submission, the backend must:
 8. Commit all changes together.
 
 If any step fails, none of the changes should be saved.
+# Database Design Notes
+
+## Database
+
+PostgreSQL
+
+---
+
+## Design Principles
+
+- UUID primary keys
+- Foreign key relationships
+- History is never deleted
+- Snapshot values are stored where historical accuracy is required
+- Child progression is stored separately from authentication
+- Shared chores are supported through AssignmentParticipant
+
+---
+
+## Naming Convention
+
+- Singular entity names
+- UUID primary keys
+- snake_case database columns
+- CamelCase Java entities
+
+---
+
+## Core Modules
+
+- User Management
+- Family Management
+- Chores
+- Rewards
+- Progression
+- Achievements
