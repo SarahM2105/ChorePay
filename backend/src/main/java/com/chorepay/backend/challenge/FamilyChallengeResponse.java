@@ -13,7 +13,7 @@ public record FamilyChallengeResponse(
         Integer bonusCoins,
         Instant startsAt,
         Instant endsAt,
-        boolean active,
+        ChallengeStatus status,
         Instant completedAt
 ) {
 }

@@ -22,19 +22,20 @@ public class FamilyChallengeService {
     private final FamilyChallengeRepository familyChallengeRepository;
     private final FamilyMemberRepository familyMemberRepository;
     private final UserProgressRepository userProgressRepository;
-private final RewardTransactionRepository rewardTransactionRepository;
+    private final RewardTransactionRepository rewardTransactionRepository;
 
     public FamilyChallengeService(
-        FamilyChallengeRepository familyChallengeRepository,
-        FamilyMemberRepository familyMemberRepository,
-        UserProgressRepository userProgressRepository,
-        RewardTransactionRepository rewardTransactionRepository
-) {
-    this.familyChallengeRepository = familyChallengeRepository;
-    this.familyMemberRepository = familyMemberRepository;
-    this.userProgressRepository = userProgressRepository;
-    this.rewardTransactionRepository = rewardTransactionRepository;
-}
+            FamilyChallengeRepository familyChallengeRepository,
+            FamilyMemberRepository familyMemberRepository,
+            UserProgressRepository userProgressRepository,
+            RewardTransactionRepository rewardTransactionRepository
+    ) {
+        this.familyChallengeRepository = familyChallengeRepository;
+        this.familyMemberRepository = familyMemberRepository;
+        this.userProgressRepository = userProgressRepository;
+        this.rewardTransactionRepository = rewardTransactionRepository;
+    }
+
     @Transactional
     public FamilyChallenge createChallenge(
             User parent,
@@ -121,7 +122,7 @@ private final RewardTransactionRepository rewardTransactionRepository;
                         );
 
         return familyChallengeRepository
-                .findByFamilyAndActiveTrue(
+                .findByFamilyOrderByCreatedAtDesc(
                         membership.getFamily()
                 )
                 .stream()
@@ -143,152 +144,198 @@ private final RewardTransactionRepository rewardTransactionRepository;
                 challenge.getBonusCoins(),
                 challenge.getStartsAt(),
                 challenge.getEndsAt(),
-                challenge.isActive(),
+                calculateStatus(challenge),
                 challenge.getCompletedAt()
         );
     }
 
- @Transactional
-public void recordApprovedChore(
-        Family family,
-        int coinsEarned
-) {
+    @Transactional
+    public void recordApprovedChore(
+            Family family,
+            int coinsEarned
+    ) {
 
-    Instant now = Instant.now();
+        Instant now = Instant.now();
 
-    List<FamilyChallenge> challenges =
-            familyChallengeRepository
-                    .findByFamilyAndActiveTrue(family);
+        List<FamilyChallenge> challenges =
+                familyChallengeRepository
+                        .findByFamilyAndActiveTrue(family);
 
-    for (FamilyChallenge challenge : challenges) {
+        for (FamilyChallenge challenge : challenges) {
 
-        if (challenge.getCompletedAt() != null) {
-            continue;
-        }
+            // Already completed.
+            if (challenge.getCompletedAt() != null) {
+                continue;
+            }
 
-        if (now.isBefore(challenge.getStartsAt())) {
-            continue;
-        }
+            // Challenge has not started yet.
+            if (now.isBefore(challenge.getStartsAt())) {
+                continue;
+            }
 
-        if (now.isAfter(challenge.getEndsAt())) {
-            continue;
-        }
+            // Challenge has expired.
+            if (now.isAfter(challenge.getEndsAt())) {
+                continue;
+            }
 
-        int increase =
-                switch (challenge.getChallengeType()) {
+            int increase =
+                    switch (challenge.getChallengeType()) {
 
-                    case CHORES_COMPLETED -> 1;
+                        case CHORES_COMPLETED -> 1;
 
-                    case COINS_EARNED -> coinsEarned;
-                };
+                        case COINS_EARNED -> coinsEarned;
+                    };
 
-        int newProgress =
-                challenge.getCurrentProgress() + increase;
+            int newProgress =
+                    challenge.getCurrentProgress()
+                            + increase;
 
-        newProgress = Math.min(
-                newProgress,
-                challenge.getTargetValue()
-        );
-
-        challenge.setCurrentProgress(newProgress);
-
-        boolean justCompleted =
-                newProgress >= challenge.getTargetValue();
-
-        if (justCompleted) {
-            challenge.setCompletedAt(now);
-        }
-
-        familyChallengeRepository.save(challenge);
-
-        if (justCompleted) {
-            awardChallengeBonus(challenge);
-        }
-    }
-}
-
-
-private void awardChallengeBonus(
-        FamilyChallenge challenge
-) {
-
-    int bonusCoins =
-            challenge.getBonusCoins() == null
-                    ? 0
-                    : challenge.getBonusCoins();
-
-    if (bonusCoins <= 0) {
-        return;
-    }
-
-    List<FamilyMember> members =
-            familyMemberRepository.findByFamily(
-                    challenge.getFamily()
+            newProgress = Math.min(
+                    newProgress,
+                    challenge.getTargetValue()
             );
 
-    for (FamilyMember member : members) {
+            challenge.setCurrentProgress(
+                    newProgress
+            );
 
-        if (member.getRole() != FamilyRole.CHILD) {
-            continue;
+            boolean justCompleted =
+                    newProgress >= challenge.getTargetValue();
+
+            if (justCompleted) {
+                challenge.setCompletedAt(now);
+            }
+
+            familyChallengeRepository.save(
+                    challenge
+            );
+
+            if (justCompleted) {
+                awardChallengeBonus(
+                        challenge
+                );
+            }
         }
-
-        User child = member.getUser();
-
-        // Prevent the same challenge bonus being paid twice.
-        boolean alreadyRewarded =
-                rewardTransactionRepository
-                        .existsByFamilyChallengeAndChildUser(
-                                challenge,
-                                child
-                        );
-
-        if (alreadyRewarded) {
-            continue;
-        }
-
-        UserProgress progress =
-                userProgressRepository
-                        .findByChildUser(child)
-                        .orElseGet(() -> {
-
-                            UserProgress newProgress =
-                                    new UserProgress();
-
-                            newProgress.setChildUser(child);
-
-                            return newProgress;
-                        });
-
-        progress.setCoinBalance(
-                progress.getCoinBalance() + bonusCoins
-        );
-
-        userProgressRepository.save(progress);
-
-        RewardTransaction transaction =
-                new RewardTransaction();
-
-        transaction.setChildUser(child);
-
-        transaction.setTransactionType(
-                RewardTransactionType.FAMILY_CHALLENGE_BONUS
-        );
-
-        transaction.setAmount(bonusCoins);
-
-        transaction.setFamilyChallenge(
-                challenge
-        );
-
-        transaction.setDescription(
-                "Family challenge bonus: "
-                        + challenge.getTitle()
-        );
-
-        rewardTransactionRepository.save(
-                transaction
-        );
     }
-}
 
+    private void awardChallengeBonus(
+            FamilyChallenge challenge
+    ) {
+
+        int bonusCoins =
+                challenge.getBonusCoins() == null
+                        ? 0
+                        : challenge.getBonusCoins();
+
+        if (bonusCoins <= 0) {
+            return;
+        }
+
+        List<FamilyMember> members =
+                familyMemberRepository.findByFamily(
+                        challenge.getFamily()
+                );
+
+        for (FamilyMember member : members) {
+
+            if (member.getRole() != FamilyRole.CHILD) {
+                continue;
+            }
+
+            User child =
+                    member.getUser();
+
+            // Prevent the same child receiving
+            // this challenge bonus more than once.
+            boolean alreadyRewarded =
+                    rewardTransactionRepository
+                            .existsByFamilyChallengeAndChildUser(
+                                    challenge,
+                                    child
+                            );
+
+            if (alreadyRewarded) {
+                continue;
+            }
+
+            UserProgress progress =
+                    userProgressRepository
+                            .findByChildUser(child)
+                            .orElseGet(() -> {
+
+                                UserProgress newProgress =
+                                        new UserProgress();
+
+                                newProgress.setChildUser(
+                                        child
+                                );
+
+                                return newProgress;
+                            });
+
+            progress.setCoinBalance(
+                    progress.getCoinBalance()
+                            + bonusCoins
+            );
+
+            userProgressRepository.save(
+                    progress
+            );
+
+            RewardTransaction transaction =
+                    new RewardTransaction();
+
+            transaction.setChildUser(
+                    child
+            );
+
+            transaction.setTransactionType(
+                    RewardTransactionType
+                            .FAMILY_CHALLENGE_BONUS
+            );
+
+            transaction.setAmount(
+                    bonusCoins
+            );
+
+            transaction.setFamilyChallenge(
+                    challenge
+            );
+
+            transaction.setDescription(
+                    "Family challenge bonus: "
+                            + challenge.getTitle()
+            );
+
+            rewardTransactionRepository.save(
+                    transaction
+            );
+        }
+    }
+
+    private ChallengeStatus calculateStatus(
+            FamilyChallenge challenge
+    ) {
+
+        Instant now =
+                Instant.now();
+
+        if (challenge.getCompletedAt() != null) {
+            return ChallengeStatus.COMPLETED;
+        }
+
+        if (now.isBefore(
+                challenge.getStartsAt()
+        )) {
+            return ChallengeStatus.UPCOMING;
+        }
+
+        if (now.isAfter(
+                challenge.getEndsAt()
+        )) {
+            return ChallengeStatus.EXPIRED;
+        }
+
+        return ChallengeStatus.ACTIVE;
+    }
 }

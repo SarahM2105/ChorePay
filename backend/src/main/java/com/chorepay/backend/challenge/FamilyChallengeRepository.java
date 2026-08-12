@@ -12,4 +12,8 @@ public interface FamilyChallengeRepository
     List<FamilyChallenge> findByFamilyAndActiveTrue(
             Family family
     );
+
+    List<FamilyChallenge> findByFamilyOrderByCreatedAtDesc(
+            Family family
+    );
 }
