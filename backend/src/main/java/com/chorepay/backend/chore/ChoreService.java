@@ -887,6 +887,29 @@ private ParentChoreAssignmentResponse toParentAssignmentResponse(
     );
 }
 
+@Transactional
+public void markOverdueAssignments() {
+
+    Instant now = Instant.now();
+
+    List<ChoreAssignment> overdueAssignments =
+            choreAssignmentRepository
+                    .findByStatusAndDueAtBefore(
+                            ChoreAssignmentStatus.ASSIGNED,
+                            now
+                    );
+
+    for (ChoreAssignment assignment : overdueAssignments) {
+
+        assignment.setStatus(
+                ChoreAssignmentStatus.OVERDUE
+        );
+    }
+
+    choreAssignmentRepository.saveAll(
+            overdueAssignments
+    );
+}
 
     private int calculateXp(
             int coins,
