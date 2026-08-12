@@ -507,8 +507,10 @@ public ChoreSubmission submitChore(
     return choreSubmissionRepository.save(submission);
 }
 
-
-public List<ChoreAssignmentResponse> getMyAssignments(User child) {
+public List<ChildChoreAssignmentResponse> getMyAssignments(
+        User child,
+        ChoreAssignmentStatus status
+) {
 
     if (child.getUserType() != UserType.CHILD) {
         throw new IllegalArgumentException(
@@ -519,9 +521,75 @@ public List<ChoreAssignmentResponse> getMyAssignments(User child) {
     return assignmentParticipantRepository
             .findByChildUser(child)
             .stream()
-            .map(AssignmentParticipant::getAssignment)
-            .map(this::toAssignmentResponse)
+            .filter(participant -> {
+
+                ChoreAssignmentStatus assignmentStatus =
+                        participant
+                                .getAssignment()
+                                .getStatus();
+
+                if (status == null) {
+                    return assignmentStatus
+                            != ChoreAssignmentStatus.CANCELLED;
+                }
+
+                return assignmentStatus == status;
+            })
+            .sorted((first, second) ->
+                    second.getAssignment()
+                            .getCreatedAt()
+                            .compareTo(
+                                    first.getAssignment()
+                                            .getCreatedAt()
+                            )
+            )
+            .map(participant ->
+                    toChildAssignmentResponse(
+                            participant,
+                            child
+                    )
+            )
             .toList();
+}
+
+private ChildChoreAssignmentResponse toChildAssignmentResponse(
+        AssignmentParticipant participant,
+        User child
+) {
+
+    ChoreAssignment assignment =
+            participant.getAssignment();
+
+    ChoreSubmission latestSubmission =
+            choreSubmissionRepository
+                    .findTopByAssignmentAndSubmittedByUserOrderBySubmissionNumberDesc(
+                            assignment,
+                            child
+                    )
+                    .orElse(null);
+
+    return new ChildChoreAssignmentResponse(
+            assignment.getId(),
+            assignment.getChoreTemplate().getId(),
+            assignment.getChoreTemplate().getTitle(),
+            assignment.getChoreTemplate().getDescription(),
+            assignment.getDueAt(),
+            assignment.getStatus(),
+            participant.getParticipationStatus(),
+            assignment.getCoinRewardSnapshot(),
+            assignment.getXpRewardSnapshot(),
+            assignment.getMoneyRewardPenceSnapshot(),
+
+            latestSubmission == null
+                    ? null
+                    : latestSubmission.getStatus(),
+
+            latestSubmission == null
+                    ? null
+                    : latestSubmission.getParentFeedback(),
+
+            assignment.getCompletedAt()
+    );
 }
 
 public ChoreSubmissionResponse toSubmissionResponse(

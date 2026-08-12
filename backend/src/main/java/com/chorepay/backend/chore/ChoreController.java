@@ -94,11 +94,18 @@ public ResponseEntity<ChoreAssignmentResponse> assignChore(
 }
 
 @GetMapping("/my-assignments")
-public ResponseEntity<List<ChoreAssignmentResponse>> getMyAssignments(
-        @AuthenticationPrincipal User user
+public ResponseEntity<List<ChildChoreAssignmentResponse>>
+getMyAssignments(
+        @AuthenticationPrincipal User user,
+        @RequestParam(required = false)
+        ChoreAssignmentStatus status
 ) {
+
     return ResponseEntity.ok(
-            choreService.getMyAssignments(user)
+            choreService.getMyAssignments(
+                    user,
+                    status
+            )
     );
 }
 
