@@ -1,5 +1,6 @@
 package com.chorepay.backend.chore;
 
+import com.chorepay.backend.family.Family;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -10,5 +11,10 @@ public interface ChoreAssignmentRepository
 
     List<ChoreAssignment> findByStatus(
             ChoreAssignmentStatus status
+    );
+
+    List<ChoreAssignment>
+    findByChoreTemplate_FamilyOrderByCreatedAtDesc(
+            Family family
     );
 }

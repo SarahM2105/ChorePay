@@ -827,6 +827,66 @@ private void updateStreak(UserProgress progress) {
     progress.setLastCompletedChoreDate(today);
 }
 
+public List<ParentChoreAssignmentResponse> getFamilyAssignments(
+        User parent
+) {
+
+    FamilyMember membership =
+            familyMemberRepository.findByUser(parent)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "User does not belong to a family."
+                            )
+                    );
+
+    if (membership.getRole() == FamilyRole.CHILD) {
+        throw new IllegalArgumentException(
+                "Children cannot view family chore history."
+        );
+    }
+
+    return choreAssignmentRepository
+            .findByChoreTemplate_FamilyOrderByCreatedAtDesc(
+                    membership.getFamily()
+            )
+            .stream()
+            .map(this::toParentAssignmentResponse)
+            .toList();
+}
+
+private ParentChoreAssignmentResponse toParentAssignmentResponse(
+        ChoreAssignment assignment
+) {
+
+    List<AssignmentParticipantResponse> participants =
+            assignmentParticipantRepository
+                    .findByAssignment(assignment)
+                    .stream()
+                    .map(participant ->
+                            new AssignmentParticipantResponse(
+                                    participant.getChildUser().getId(),
+                                    participant.getChildUser().getName(),
+                                    participant.getParticipationStatus()
+                            )
+                    )
+                    .toList();
+
+    return new ParentChoreAssignmentResponse(
+            assignment.getId(),
+            assignment.getChoreTemplate().getId(),
+            assignment.getChoreTemplate().getTitle(),
+            assignment.getChoreTemplate().getDescription(),
+            assignment.getDueAt(),
+            assignment.getStatus(),
+            assignment.getCoinRewardSnapshot(),
+            assignment.getXpRewardSnapshot(),
+            assignment.getMoneyRewardPenceSnapshot(),
+            participants,
+            assignment.getCompletedAt(),
+            assignment.getCreatedAt()
+    );
+}
+
 
     private int calculateXp(
             int coins,

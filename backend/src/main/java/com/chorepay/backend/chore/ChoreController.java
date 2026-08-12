@@ -140,6 +140,17 @@ public ResponseEntity<ChoreSubmissionResponse> approveSubmission(
     );
 }
 
+@GetMapping("/family-assignments")
+public ResponseEntity<List<ParentChoreAssignmentResponse>>
+getFamilyAssignments(
+        @AuthenticationPrincipal User user
+) {
+
+    return ResponseEntity.ok(
+            choreService.getFamilyAssignments(user)
+    );
+}
+
 @PostMapping("/submissions/{submissionId}/reject")
 public ResponseEntity<ChoreSubmissionResponse> rejectSubmission(
         @AuthenticationPrincipal User user,
