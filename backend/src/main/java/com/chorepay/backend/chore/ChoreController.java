@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
+import java.util.UUID;
 import java.util.List;
 
 @RestController
@@ -75,6 +75,88 @@ public ResponseEntity<Void> deactivateTemplate(
     return ResponseEntity.noContent().build();
 }
 
+
+@PostMapping("/assign")
+public ResponseEntity<ChoreAssignmentResponse> assignChore(
+        @AuthenticationPrincipal User user,
+        @Valid @RequestBody AssignChoreRequest request
+) {
+    ChoreAssignment assignment =
+            choreService.assignChore(user, request);
+
+    return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(
+                    choreService.toAssignmentResponse(
+                            assignment
+                    )
+            );
+}
+
+@GetMapping("/my-assignments")
+public ResponseEntity<List<ChoreAssignmentResponse>> getMyAssignments(
+        @AuthenticationPrincipal User user
+) {
+    return ResponseEntity.ok(
+            choreService.getMyAssignments(user)
+    );
+}
+
+@PostMapping("/assignments/{assignmentId}/submit")
+public ResponseEntity<ChoreSubmissionResponse> submitChore(
+        @AuthenticationPrincipal User user,
+        @PathVariable UUID assignmentId,
+        @Valid @RequestBody SubmitChoreRequest request
+) {
+    ChoreSubmission submission =
+            choreService.submitChore(
+                    user,
+                    assignmentId,
+                    request
+            );
+
+    return ResponseEntity
+            .status(HttpStatus.CREATED)
+            .body(
+                    choreService.toSubmissionResponse(
+                            submission
+                    )
+            );
+}
+
+@PostMapping("/submissions/{submissionId}/approve")
+public ResponseEntity<ChoreSubmissionResponse> approveSubmission(
+        @AuthenticationPrincipal User user,
+        @PathVariable UUID submissionId
+) {
+    ChoreSubmission submission =
+            choreService.approveSubmission(
+                    user,
+                    submissionId
+            );
+
+    return ResponseEntity.ok(
+            choreService.toSubmissionResponse(submission)
+    );
+}
+
+@PostMapping("/submissions/{submissionId}/reject")
+public ResponseEntity<ChoreSubmissionResponse> rejectSubmission(
+        @AuthenticationPrincipal User user,
+        @PathVariable UUID submissionId,
+        @Valid @RequestBody RejectChoreSubmissionRequest request
+) {
+    ChoreSubmission submission =
+            choreService.rejectSubmission(
+                    user,
+                    submissionId,
+                    request
+            );
+
+    return ResponseEntity.ok(
+            choreService.toSubmissionResponse(submission)
+    );
+}
 
     private ChoreTemplateResponse toResponse(
             ChoreTemplate template
