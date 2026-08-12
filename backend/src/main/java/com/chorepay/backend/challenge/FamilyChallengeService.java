@@ -1,12 +1,18 @@
 package com.chorepay.backend.challenge;
 
+import com.chorepay.backend.family.Family;
 import com.chorepay.backend.family.FamilyMember;
 import com.chorepay.backend.family.FamilyMemberRepository;
 import com.chorepay.backend.family.FamilyRole;
+import com.chorepay.backend.progress.UserProgress;
+import com.chorepay.backend.progress.UserProgressRepository;
+import com.chorepay.backend.reward.RewardTransaction;
+import com.chorepay.backend.reward.RewardTransactionRepository;
+import com.chorepay.backend.reward.RewardTransactionType;
 import com.chorepay.backend.user.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.chorepay.backend.family.Family;
+
 import java.time.Instant;
 import java.util.List;
 
@@ -15,15 +21,20 @@ public class FamilyChallengeService {
 
     private final FamilyChallengeRepository familyChallengeRepository;
     private final FamilyMemberRepository familyMemberRepository;
+    private final UserProgressRepository userProgressRepository;
+private final RewardTransactionRepository rewardTransactionRepository;
 
     public FamilyChallengeService(
-            FamilyChallengeRepository familyChallengeRepository,
-            FamilyMemberRepository familyMemberRepository
-    ) {
-        this.familyChallengeRepository = familyChallengeRepository;
-        this.familyMemberRepository = familyMemberRepository;
-    }
-
+        FamilyChallengeRepository familyChallengeRepository,
+        FamilyMemberRepository familyMemberRepository,
+        UserProgressRepository userProgressRepository,
+        RewardTransactionRepository rewardTransactionRepository
+) {
+    this.familyChallengeRepository = familyChallengeRepository;
+    this.familyMemberRepository = familyMemberRepository;
+    this.userProgressRepository = userProgressRepository;
+    this.rewardTransactionRepository = rewardTransactionRepository;
+}
     @Transactional
     public FamilyChallenge createChallenge(
             User parent,
@@ -137,7 +148,7 @@ public class FamilyChallengeService {
         );
     }
 
-    @Transactional
+ @Transactional
 public void recordApprovedChore(
         Family family,
         int coinsEarned
@@ -151,17 +162,14 @@ public void recordApprovedChore(
 
     for (FamilyChallenge challenge : challenges) {
 
-        // Don't continue progressing a completed challenge.
         if (challenge.getCompletedAt() != null) {
             continue;
         }
 
-        // Challenge hasn't started yet.
         if (now.isBefore(challenge.getStartsAt())) {
             continue;
         }
 
-        // Challenge has expired.
         if (now.isAfter(challenge.getEndsAt())) {
             continue;
         }
@@ -177,21 +185,110 @@ public void recordApprovedChore(
         int newProgress =
                 challenge.getCurrentProgress() + increase;
 
-        // Don't allow progress to go above the target.
         newProgress = Math.min(
                 newProgress,
                 challenge.getTargetValue()
         );
 
-        challenge.setCurrentProgress(
-                newProgress
-        );
+        challenge.setCurrentProgress(newProgress);
 
-        if (newProgress >= challenge.getTargetValue()) {
+        boolean justCompleted =
+                newProgress >= challenge.getTargetValue();
+
+        if (justCompleted) {
             challenge.setCompletedAt(now);
         }
 
         familyChallengeRepository.save(challenge);
+
+        if (justCompleted) {
+            awardChallengeBonus(challenge);
+        }
     }
 }
+
+
+private void awardChallengeBonus(
+        FamilyChallenge challenge
+) {
+
+    int bonusCoins =
+            challenge.getBonusCoins() == null
+                    ? 0
+                    : challenge.getBonusCoins();
+
+    if (bonusCoins <= 0) {
+        return;
+    }
+
+    List<FamilyMember> members =
+            familyMemberRepository.findByFamily(
+                    challenge.getFamily()
+            );
+
+    for (FamilyMember member : members) {
+
+        if (member.getRole() != FamilyRole.CHILD) {
+            continue;
+        }
+
+        User child = member.getUser();
+
+        // Prevent the same challenge bonus being paid twice.
+        boolean alreadyRewarded =
+                rewardTransactionRepository
+                        .existsByFamilyChallengeAndChildUser(
+                                challenge,
+                                child
+                        );
+
+        if (alreadyRewarded) {
+            continue;
+        }
+
+        UserProgress progress =
+                userProgressRepository
+                        .findByChildUser(child)
+                        .orElseGet(() -> {
+
+                            UserProgress newProgress =
+                                    new UserProgress();
+
+                            newProgress.setChildUser(child);
+
+                            return newProgress;
+                        });
+
+        progress.setCoinBalance(
+                progress.getCoinBalance() + bonusCoins
+        );
+
+        userProgressRepository.save(progress);
+
+        RewardTransaction transaction =
+                new RewardTransaction();
+
+        transaction.setChildUser(child);
+
+        transaction.setTransactionType(
+                RewardTransactionType.FAMILY_CHALLENGE_BONUS
+        );
+
+        transaction.setAmount(bonusCoins);
+
+        transaction.setFamilyChallenge(
+                challenge
+        );
+
+        transaction.setDescription(
+                "Family challenge bonus: "
+                        + challenge.getTitle()
+        );
+
+        rewardTransactionRepository.save(
+                transaction
+        );
+    }
+}
+
 }
