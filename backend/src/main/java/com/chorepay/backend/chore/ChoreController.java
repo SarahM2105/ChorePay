@@ -143,11 +143,35 @@ public ResponseEntity<ChoreSubmissionResponse> approveSubmission(
 @GetMapping("/family-assignments")
 public ResponseEntity<List<ParentChoreAssignmentResponse>>
 getFamilyAssignments(
-        @AuthenticationPrincipal User user
+        @AuthenticationPrincipal User user,
+        @RequestParam(required = false)
+        ChoreAssignmentStatus status
 ) {
 
     return ResponseEntity.ok(
-            choreService.getFamilyAssignments(user)
+            choreService.getFamilyAssignments(
+                    user,
+                    status
+            )
+    );
+}
+
+@PostMapping("/assignments/{assignmentId}/cancel")
+public ResponseEntity<ChoreAssignmentResponse> cancelAssignment(
+        @AuthenticationPrincipal User user,
+        @PathVariable UUID assignmentId
+) {
+
+    ChoreAssignment assignment =
+            choreService.cancelAssignment(
+                    user,
+                    assignmentId
+            );
+
+    return ResponseEntity.ok(
+            choreService.toAssignmentResponse(
+                    assignment
+            )
     );
 }
 

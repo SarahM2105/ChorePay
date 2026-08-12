@@ -828,7 +828,8 @@ private void updateStreak(UserProgress progress) {
 }
 
 public List<ParentChoreAssignmentResponse> getFamilyAssignments(
-        User parent
+        User parent,
+        ChoreAssignmentStatus status
 ) {
 
     FamilyMember membership =
@@ -845,13 +846,91 @@ public List<ParentChoreAssignmentResponse> getFamilyAssignments(
         );
     }
 
-    return choreAssignmentRepository
-            .findByChoreTemplate_FamilyOrderByCreatedAtDesc(
-                    membership.getFamily()
-            )
+    List<ChoreAssignment> assignments;
+
+    if (status == null) {
+
+        assignments =
+                choreAssignmentRepository
+                        .findByChoreTemplate_FamilyOrderByCreatedAtDesc(
+                                membership.getFamily()
+                        );
+
+    } else {
+
+        assignments =
+                choreAssignmentRepository
+                        .findByChoreTemplate_FamilyAndStatusOrderByCreatedAtDesc(
+                                membership.getFamily(),
+                                status
+                        );
+    }
+
+    return assignments
             .stream()
             .map(this::toParentAssignmentResponse)
             .toList();
+}
+
+
+@Transactional
+public ChoreAssignment cancelAssignment(
+        User parent,
+        UUID assignmentId
+) {
+
+    FamilyMember membership =
+            familyMemberRepository.findByUser(parent)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "User does not belong to a family."
+                            )
+                    );
+
+    if (membership.getRole() == FamilyRole.CHILD) {
+        throw new IllegalArgumentException(
+                "Children cannot cancel chore assignments."
+        );
+    }
+
+    ChoreAssignment assignment =
+            choreAssignmentRepository.findById(assignmentId)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "Chore assignment not found."
+                            )
+                    );
+
+    // Make sure the assignment belongs to this parent's family.
+    if (!assignment.getChoreTemplate()
+            .getFamily()
+            .getId()
+            .equals(membership.getFamily().getId())) {
+
+        throw new IllegalArgumentException(
+                "You cannot cancel another family's chore assignment."
+        );
+    }
+
+    ChoreAssignmentStatus status =
+            assignment.getStatus();
+
+    if (status != ChoreAssignmentStatus.ASSIGNED
+            && status != ChoreAssignmentStatus.OVERDUE
+            && status != ChoreAssignmentStatus.REJECTED) {
+
+        throw new IllegalArgumentException(
+                "This chore assignment can no longer be cancelled."
+        );
+    }
+
+    assignment.setStatus(
+            ChoreAssignmentStatus.CANCELLED
+    );
+
+    return choreAssignmentRepository.save(
+            assignment
+    );
 }
 
 private ParentChoreAssignmentResponse toParentAssignmentResponse(

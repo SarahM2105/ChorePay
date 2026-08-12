@@ -19,6 +19,12 @@ public interface ChoreAssignmentRepository
             Family family
     );
 
+    List<ChoreAssignment>
+    findByChoreTemplate_FamilyAndStatusOrderByCreatedAtDesc(
+            Family family,
+            ChoreAssignmentStatus status
+    );
+
     List<ChoreAssignment> findByStatusAndDueAtBefore(
             ChoreAssignmentStatus status,
             Instant dueAt
