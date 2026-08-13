@@ -83,7 +83,7 @@ public List<ChoreChecklistItemResponse> updateChecklist(
     FamilyMember membership =
             familyMemberRepository.findByUser(parent)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
@@ -143,7 +143,7 @@ public List<ChoreChecklistItemResponse> getChecklist(
     FamilyMember membership =
             familyMemberRepository.findByUser(user)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
@@ -197,7 +197,7 @@ private List<ChoreChecklistItemResponse> getChecklistResponse(
         FamilyMember membership =
                 familyMemberRepository.findByUser(user)
                         .orElseThrow(() ->
-                                new IllegalArgumentException(
+                                new ForbiddenException(
                                         "User does not belong to a family."
                                 )
                         );
@@ -252,7 +252,7 @@ private List<ChoreChecklistItemResponse> getChecklistResponse(
     FamilyMember membership =
             familyMemberRepository.findByUser(user)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
@@ -293,7 +293,7 @@ public ChoreTemplate updateTemplate(
     FamilyMember membership =
             familyMemberRepository.findByUser(user)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
@@ -362,7 +362,7 @@ public void deactivateTemplate(
     FamilyMember membership =
             familyMemberRepository.findByUser(user)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
@@ -403,7 +403,7 @@ public ChoreAssignment assignChore(
     FamilyMember parentMembership =
             familyMemberRepository.findByUser(parent)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
@@ -423,7 +423,7 @@ public ChoreAssignment assignChore(
                     );
 
     if (!template.isActive()) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "This chore template is inactive."
         );
     }
@@ -484,7 +484,7 @@ public ChoreAssignment assignChore(
         FamilyMember childMembership =
                 familyMemberRepository.findByUser(child)
                         .orElseThrow(() ->
-                                new IllegalArgumentException(
+                                new ForbiddenException(
                                         "Child does not belong to a family."
                                 )
                         );
@@ -552,7 +552,7 @@ public List<ParentChoreSubmissionResponse> getPendingSubmissions(
     FamilyMember membership =
             familyMemberRepository.findByUser(parent)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
@@ -581,7 +581,7 @@ public List<ParentChoreSubmissionResponse> getSubmissionHistory(
     FamilyMember membership =
             familyMemberRepository.findByUser(parent)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
@@ -626,7 +626,7 @@ public ParentChoreSubmissionResponse getSubmissionDetails(
     FamilyMember membership =
             familyMemberRepository.findByUser(parent)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
@@ -706,7 +706,7 @@ public ChoreAssignment updateAssignment(
     FamilyMember parentMembership =
             familyMemberRepository.findByUser(parent)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
@@ -738,7 +738,7 @@ public ChoreAssignment updateAssignment(
     if (assignment.getStatus() != ChoreAssignmentStatus.ASSIGNED
             && assignment.getStatus() != ChoreAssignmentStatus.OVERDUE) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Only assigned or overdue chores can be edited."
         );
     }
@@ -783,7 +783,7 @@ public ChoreAssignment updateAssignment(
                                 familyMemberRepository
                                         .findByUser(child)
                                         .orElseThrow(() ->
-                                                new IllegalArgumentException(
+                                                new ForbiddenException(
                                                         "Child does not belong to a family."
                                                 )
                                         );
@@ -863,7 +863,7 @@ public ChoreSubmission submitChore(
 ) {
 
     if (child.getUserType() != UserType.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Only children can submit chores."
         );
     }
@@ -884,7 +884,7 @@ public ChoreSubmission submitChore(
                     );
 
     if (!isParticipant) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "This chore is not assigned to you."
         );
     }
@@ -894,7 +894,7 @@ public ChoreSubmission submitChore(
             || assignment.getStatus()
             == ChoreAssignmentStatus.CANCELLED) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "This chore can no longer be submitted."
         );
     }
@@ -908,7 +908,7 @@ public ChoreSubmission submitChore(
                     .isPresent();
 
     if (alreadyPending) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "This chore already has a pending submission."
         );
     }
@@ -920,7 +920,7 @@ public ChoreSubmission submitChore(
             && (request.photoUrl() == null
             || request.photoUrl().isBlank())) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "A photo is required for this chore."
         );
     }
@@ -929,7 +929,7 @@ public ChoreSubmission submitChore(
             && (request.comment() == null
             || request.comment().isBlank())) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "A comment is required for this chore."
         );
     }
@@ -980,7 +980,7 @@ public ChoreSubmission submitChore(
     for (UUID completedId : completedIds) {
 
         if (!validChecklistIds.contains(completedId)) {
-            throw new IllegalArgumentException(
+            throw new ForbiddenException(
                     "A submitted checklist item does not belong to this chore."
             );
         }
@@ -1097,7 +1097,7 @@ public List<ChildChoreAssignmentResponse> getMyAssignments(
 ) {
 
     if (child.getUserType() != UserType.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Only children can view child assignments."
         );
     }
@@ -1234,7 +1234,7 @@ public ChoreSubmission approveSubmission(
     FamilyMember parentMembership =
             familyMemberRepository.findByUser(parent)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
@@ -1254,7 +1254,7 @@ public ChoreSubmission approveSubmission(
                     );
 
     if (submission.getStatus() != ChoreSubmissionStatus.PENDING) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Only pending submissions can be approved."
         );
     }
@@ -1447,7 +1447,7 @@ public ChoreSubmission rejectSubmission(
                     );
 
     if (submission.getStatus() != ChoreSubmissionStatus.PENDING) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Only pending submissions can be rejected."
         );
     }
@@ -1550,7 +1550,7 @@ public List<ParentChoreAssignmentResponse> getFamilyAssignments(
     FamilyMember membership =
             familyMemberRepository.findByUser(parent)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
@@ -1634,7 +1634,7 @@ public ChoreAssignment cancelAssignment(
             && status != ChoreAssignmentStatus.OVERDUE
             && status != ChoreAssignmentStatus.REJECTED) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "This chore assignment can no longer be cancelled."
         );
     }
