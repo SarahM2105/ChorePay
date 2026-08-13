@@ -22,7 +22,13 @@ public record ParentChoreSubmissionResponse(
 
         String photoUrl,
 
+        ChoreSubmissionStatus status,
+
         Instant submittedAt,
+
+        String parentFeedback,
+
+        Instant reviewedAt,
 
         List<SubmissionChecklistItemResponse> checklist
 

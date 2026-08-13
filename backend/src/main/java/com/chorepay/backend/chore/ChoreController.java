@@ -152,6 +152,38 @@ getPendingSubmissions(
     );
 }
 
+@GetMapping("/submissions/history")
+public ResponseEntity<List<ParentChoreSubmissionResponse>>
+getSubmissionHistory(
+        @AuthenticationPrincipal User user,
+        @RequestParam(required = false)
+        ChoreSubmissionStatus status
+) {
+
+    return ResponseEntity.ok(
+            choreService.getSubmissionHistory(
+                    user,
+                    status
+            )
+    );
+}
+
+@GetMapping("/submissions/{submissionId}")
+public ResponseEntity<ParentChoreSubmissionResponse>
+getSubmissionDetails(
+        @AuthenticationPrincipal User user,
+        @PathVariable UUID submissionId
+) {
+
+    return ResponseEntity.ok(
+            choreService.getSubmissionDetails(
+                    user,
+                    submissionId
+            )
+    );
+}
+
+
 @PostMapping("/assignments/{assignmentId}/submit")
 public ResponseEntity<ChoreSubmissionResponse> submitChore(
         @AuthenticationPrincipal User user,

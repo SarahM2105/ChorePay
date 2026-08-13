@@ -25,6 +25,17 @@ findByAssignment_ChoreTemplate_FamilyAndStatusOrderBySubmittedAtAsc(
         ChoreSubmissionStatus status
 );
 
+List<ChoreSubmission>
+findByAssignment_ChoreTemplate_FamilyOrderBySubmittedAtDesc(
+        Family family
+);
+
+List<ChoreSubmission>
+findByAssignment_ChoreTemplate_FamilyAndStatusOrderBySubmittedAtDesc(
+        Family family,
+        ChoreSubmissionStatus status
+);
+
     Optional<ChoreSubmission>
 findTopByAssignmentAndSubmittedByUserOrderBySubmissionNumberDesc(
         ChoreAssignment assignment,

@@ -557,6 +557,92 @@ public List<ParentChoreSubmissionResponse> getPendingSubmissions(
             .toList();
 }
 
+public List<ParentChoreSubmissionResponse> getSubmissionHistory(
+        User parent,
+        ChoreSubmissionStatus status
+) {
+
+    FamilyMember membership =
+            familyMemberRepository.findByUser(parent)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "User does not belong to a family."
+                            )
+                    );
+
+    if (membership.getRole() == FamilyRole.CHILD) {
+        throw new IllegalArgumentException(
+                "Children cannot view family submission history."
+        );
+    }
+
+    List<ChoreSubmission> submissions;
+
+    if (status == null) {
+
+        submissions =
+                choreSubmissionRepository
+                        .findByAssignment_ChoreTemplate_FamilyOrderBySubmittedAtDesc(
+                                membership.getFamily()
+                        );
+
+    } else {
+
+        submissions =
+                choreSubmissionRepository
+                        .findByAssignment_ChoreTemplate_FamilyAndStatusOrderBySubmittedAtDesc(
+                                membership.getFamily(),
+                                status
+                        );
+    }
+
+    return submissions
+            .stream()
+            .map(this::toParentSubmissionResponse)
+            .toList();
+}
+
+public ParentChoreSubmissionResponse getSubmissionDetails(
+        User parent,
+        UUID submissionId
+) {
+
+    FamilyMember membership =
+            familyMemberRepository.findByUser(parent)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "User does not belong to a family."
+                            )
+                    );
+
+    if (membership.getRole() == FamilyRole.CHILD) {
+        throw new IllegalArgumentException(
+                "Children cannot view parent submission details."
+        );
+    }
+
+    ChoreSubmission submission =
+            choreSubmissionRepository.findById(submissionId)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "Submission not found."
+                            )
+                    );
+
+    if (!submission.getAssignment()
+            .getChoreTemplate()
+            .getFamily()
+            .getId()
+            .equals(membership.getFamily().getId())) {
+
+        throw new IllegalArgumentException(
+                "You cannot view another family's submission."
+        );
+    }
+
+    return toParentSubmissionResponse(submission);
+}
+
 private ParentChoreSubmissionResponse toParentSubmissionResponse(
         ChoreSubmission submission
 ) {
@@ -586,12 +672,13 @@ private ParentChoreSubmissionResponse toParentSubmissionResponse(
             submission.getSubmissionNumber(),
             submission.getComment(),
             submission.getPhotoUrl(),
+            submission.getStatus(),
             submission.getSubmittedAt(),
+            submission.getParentFeedback(),
+            submission.getReviewedAt(),
             checklist
     );
 }
-
-
 
 @Transactional
 public ChoreSubmission submitChore(
