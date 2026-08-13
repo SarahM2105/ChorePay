@@ -12,6 +12,8 @@ import com.chorepay.backend.reward.RewardTransactionType;
 import com.chorepay.backend.user.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.chorepay.backend.notification.NotificationService;
+import com.chorepay.backend.notification.NotificationType;
 
 import java.time.Instant;
 import java.util.List;
@@ -23,17 +25,20 @@ public class FamilyChallengeService {
     private final FamilyMemberRepository familyMemberRepository;
     private final UserProgressRepository userProgressRepository;
     private final RewardTransactionRepository rewardTransactionRepository;
+    private final NotificationService notificationService;
 
     public FamilyChallengeService(
             FamilyChallengeRepository familyChallengeRepository,
             FamilyMemberRepository familyMemberRepository,
             UserProgressRepository userProgressRepository,
-            RewardTransactionRepository rewardTransactionRepository
+            RewardTransactionRepository rewardTransactionRepository,
+            NotificationService notificationService
     ) {
         this.familyChallengeRepository = familyChallengeRepository;
         this.familyMemberRepository = familyMemberRepository;
         this.userProgressRepository = userProgressRepository;
         this.rewardTransactionRepository = rewardTransactionRepository;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -186,35 +191,25 @@ public class FamilyChallengeService {
                         case COINS_EARNED -> coinsEarned;
                     };
 
-            int newProgress =
-                    challenge.getCurrentProgress()
-                            + increase;
+            if (challenge.getCurrentProgress()
+        >= challenge.getTargetValue()) {
 
-            newProgress = Math.min(
-                    newProgress,
-                    challenge.getTargetValue()
-            );
+    challenge.setCurrentProgress(
+            challenge.getTargetValue()
+    );
 
-            challenge.setCurrentProgress(
-                    newProgress
-            );
+    challenge.setCompletedAt(
+            Instant.now()
+    );
 
-            boolean justCompleted =
-                    newProgress >= challenge.getTargetValue();
+    awardChallengeBonus(
+            challenge
+    );
 
-            if (justCompleted) {
-                challenge.setCompletedAt(now);
-            }
-
-            familyChallengeRepository.save(
-                    challenge
-            );
-
-            if (justCompleted) {
-                awardChallengeBonus(
-                        challenge
-                );
-            }
+    notifyChallengeCompleted(
+            challenge
+    );
+}
         }
     }
 
@@ -338,4 +333,27 @@ public class FamilyChallengeService {
 
         return ChallengeStatus.ACTIVE;
     }
+
+    private void notifyChallengeCompleted(
+        FamilyChallenge challenge
+) {
+
+    List<FamilyMember> members =
+            familyMemberRepository.findByFamily(
+                    challenge.getFamily()
+            );
+
+    for (FamilyMember member : members) {
+
+        notificationService.createNotification(
+                member.getUser(),
+                NotificationType.CHALLENGE_COMPLETED,
+                "Family challenge completed!",
+                "Your family completed "
+                        + challenge.getTitle()
+                        + ".",
+                challenge.getId()
+        );
+    }
+}
 }
