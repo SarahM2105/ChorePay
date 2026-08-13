@@ -54,7 +54,317 @@ private final AssignmentParticipantRepository assignmentParticipantRepository;
             assignmentParticipantRepository;
 }
 
+public List<ChoreScheduleResponse> getFamilySchedules(
+        User parent
+) {
 
+    FamilyMember membership =
+            familyMemberRepository.findByUser(parent)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "User does not belong to a family."
+                            )
+                    );
+
+    if (membership.getRole() == FamilyRole.CHILD) {
+        throw new IllegalArgumentException(
+                "Children cannot manage chore schedules."
+        );
+    }
+
+    return choreScheduleRepository
+            .findByChoreTemplate_FamilyOrderByCreatedAtDesc(
+                    membership.getFamily()
+            )
+            .stream()
+            .map(this::toResponse)
+            .toList();
+}
+
+public ChoreScheduleResponse toResponse(
+        ChoreSchedule schedule
+) {
+
+    List<DayOfWeekValue> days =
+            choreScheduleDayRepository
+                    .findByChoreSchedule(schedule)
+                    .stream()
+                    .map(ChoreScheduleDay::getDayOfWeek)
+                    .toList();
+
+    List<ChoreScheduleParticipantResponse> participants =
+            choreScheduleParticipantRepository
+                    .findByChoreSchedule(schedule)
+                    .stream()
+                    .map(participant ->
+                            new ChoreScheduleParticipantResponse(
+                                    participant.getChildUser().getId(),
+                                    participant.getChildUser().getName()
+                            )
+                    )
+                    .toList();
+
+    return new ChoreScheduleResponse(
+            schedule.getId(),
+            schedule.getChoreTemplate().getId(),
+            schedule.getChoreTemplate().getTitle(),
+            schedule.getScheduleType(),
+            schedule.getStartDate(),
+            schedule.getEndDate(),
+            schedule.getDueTime(),
+            days,
+            participants,
+            schedule.isActive()
+    );
+}
+
+@Transactional
+public void deactivateSchedule(
+        User parent,
+        UUID scheduleId
+) {
+
+    FamilyMember membership =
+            familyMemberRepository.findByUser(parent)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "User does not belong to a family."
+                            )
+                    );
+
+    if (membership.getRole() == FamilyRole.CHILD) {
+        throw new IllegalArgumentException(
+                "Children cannot deactivate chore schedules."
+        );
+    }
+
+    ChoreSchedule schedule =
+            choreScheduleRepository.findById(scheduleId)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "Chore schedule not found."
+                            )
+                    );
+
+    if (!schedule.getChoreTemplate()
+            .getFamily()
+            .getId()
+            .equals(membership.getFamily().getId())) {
+
+        throw new IllegalArgumentException(
+                "You cannot modify another family's chore schedule."
+        );
+    }
+
+    schedule.setActive(false);
+
+    choreScheduleRepository.save(schedule);
+}
+
+@Transactional
+public ChoreSchedule updateSchedule(
+        User parent,
+        UUID scheduleId,
+        UpdateChoreScheduleRequest request
+) {
+
+    FamilyMember parentMembership =
+            familyMemberRepository.findByUser(parent)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "User does not belong to a family."
+                            )
+                    );
+
+    if (parentMembership.getRole() == FamilyRole.CHILD) {
+        throw new IllegalArgumentException(
+                "Children cannot edit chore schedules."
+        );
+    }
+
+    ChoreSchedule schedule =
+            choreScheduleRepository.findById(scheduleId)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "Chore schedule not found."
+                            )
+                    );
+
+    if (!schedule.getChoreTemplate()
+            .getFamily()
+            .getId()
+            .equals(parentMembership.getFamily().getId())) {
+
+        throw new IllegalArgumentException(
+                "You cannot edit another family's chore schedule."
+        );
+    }
+
+    if (!schedule.isActive()) {
+        throw new IllegalArgumentException(
+                "Inactive schedules cannot be edited."
+        );
+    }
+
+    if (request.endDate() != null
+            && request.endDate().isBefore(request.startDate())) {
+
+        throw new IllegalArgumentException(
+                "End date cannot be before start date."
+        );
+    }
+
+    validateScheduleDays(
+            new CreateChoreScheduleRequest(
+                    schedule.getChoreTemplate().getId(),
+                    request.scheduleType(),
+                    request.childUserIds(),
+                    request.startDate(),
+                    request.endDate(),
+                    request.dueTime(),
+                    request.daysOfWeek()
+            )
+    );
+
+    Set<UUID> uniqueChildIds =
+            new HashSet<>(request.childUserIds());
+
+    if (uniqueChildIds.size()
+            != request.childUserIds().size()) {
+
+        throw new IllegalArgumentException(
+                "The same child cannot be added twice."
+        );
+    }
+
+    List<User> children =
+            uniqueChildIds
+                    .stream()
+                    .map(childId -> {
+
+                        User child =
+                                userRepository.findById(childId)
+                                        .orElseThrow(() ->
+                                                new IllegalArgumentException(
+                                                        "Child user not found."
+                                                )
+                                        );
+
+                        if (child.getUserType() != UserType.CHILD) {
+                            throw new IllegalArgumentException(
+                                    "Schedules can only be assigned to child accounts."
+                            );
+                        }
+
+                        FamilyMember childMembership =
+                                familyMemberRepository
+                                        .findByUser(child)
+                                        .orElseThrow(() ->
+                                                new IllegalArgumentException(
+                                                        "Child does not belong to a family."
+                                                )
+                                        );
+
+                        if (!childMembership
+                                .getFamily()
+                                .getId()
+                                .equals(
+                                        parentMembership
+                                                .getFamily()
+                                                .getId()
+                                )) {
+
+                            throw new IllegalArgumentException(
+                                    "You cannot schedule chores for children in another family."
+                            );
+                        }
+
+                        return child;
+                    })
+                    .toList();
+
+    // Update the schedule itself.
+    schedule.setScheduleType(
+            request.scheduleType()
+    );
+
+    schedule.setStartDate(
+            request.startDate()
+    );
+
+    schedule.setEndDate(
+            request.endDate()
+    );
+
+    schedule.setDueTime(
+            request.dueTime()
+    );
+
+    ChoreSchedule savedSchedule =
+            choreScheduleRepository.save(schedule);
+
+    /*
+     * Replace the old weekday configuration.
+     */
+    List<ChoreScheduleDay> oldDays =
+            choreScheduleDayRepository
+                    .findByChoreSchedule(schedule);
+
+    choreScheduleDayRepository.deleteAll(oldDays);
+
+    if (request.daysOfWeek() != null) {
+
+        Set<DayOfWeekValue> uniqueDays =
+                new HashSet<>(request.daysOfWeek());
+
+        for (DayOfWeekValue day : uniqueDays) {
+
+            ChoreScheduleDay scheduleDay =
+                    new ChoreScheduleDay();
+
+            scheduleDay.setChoreSchedule(
+                    savedSchedule
+            );
+
+            scheduleDay.setDayOfWeek(day);
+
+            choreScheduleDayRepository.save(
+                    scheduleDay
+            );
+        }
+    }
+
+    /*
+     * Replace the old children assigned
+     * to the recurring schedule.
+     */
+    List<ChoreScheduleParticipant> oldParticipants =
+            choreScheduleParticipantRepository
+                    .findByChoreSchedule(schedule);
+
+    choreScheduleParticipantRepository
+            .deleteAll(oldParticipants);
+
+    for (User child : children) {
+
+        ChoreScheduleParticipant participant =
+                new ChoreScheduleParticipant();
+
+        participant.setChoreSchedule(
+                savedSchedule
+        );
+
+        participant.setChildUser(
+                child
+        );
+
+        choreScheduleParticipantRepository.save(
+                participant
+        );
+    }
+
+    return savedSchedule;
+}
 
 @Transactional
 public void generateScheduledAssignments() {
