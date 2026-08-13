@@ -21,7 +21,8 @@ import java.util.UUID;
 import com.chorepay.backend.challenge.FamilyChallengeService;
 import java.util.HashSet;
 import java.util.Set;
-
+import com.chorepay.backend.exception.ForbiddenException;
+import com.chorepay.backend.exception.NotFoundException;
 import com.chorepay.backend.notification.NotificationService;
 import com.chorepay.backend.notification.NotificationType;
 
@@ -88,7 +89,7 @@ public List<ChoreChecklistItemResponse> updateChecklist(
                     );
 
     if (membership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot edit chore checklists."
         );
     }
@@ -96,7 +97,7 @@ public List<ChoreChecklistItemResponse> updateChecklist(
     ChoreTemplate template =
             choreTemplateRepository.findById(templateId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Chore template not found."
                             )
                     );
@@ -105,7 +106,7 @@ public List<ChoreChecklistItemResponse> updateChecklist(
             .getId()
             .equals(membership.getFamily().getId())) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You cannot edit another family's chore checklist."
         );
     }
@@ -150,7 +151,7 @@ public List<ChoreChecklistItemResponse> getChecklist(
     ChoreTemplate template =
             choreTemplateRepository.findById(templateId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Chore template not found."
                             )
                     );
@@ -159,7 +160,7 @@ public List<ChoreChecklistItemResponse> getChecklist(
             .getId()
             .equals(membership.getFamily().getId())) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You cannot view another family's chore checklist."
         );
     }
@@ -202,7 +203,7 @@ private List<ChoreChecklistItemResponse> getChecklistResponse(
                         );
 
         if (membership.getRole() == FamilyRole.CHILD) {
-            throw new IllegalArgumentException(
+            throw new ForbiddenException(
                     "Children cannot create chore templates."
             );
         }
@@ -298,7 +299,7 @@ public ChoreTemplate updateTemplate(
                     );
 
     if (membership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot edit chore templates."
         );
     }
@@ -306,14 +307,14 @@ public ChoreTemplate updateTemplate(
     ChoreTemplate template =
             choreTemplateRepository.findById(templateId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Chore template not found."
                             )
                     );
 
     if (!template.getFamily().getId()
             .equals(membership.getFamily().getId())) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You cannot edit another family's chore template."
         );
     }
@@ -367,7 +368,7 @@ public void deactivateTemplate(
                     );
 
     if (membership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot deactivate chore templates."
         );
     }
@@ -375,14 +376,14 @@ public void deactivateTemplate(
     ChoreTemplate template =
             choreTemplateRepository.findById(templateId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Chore template not found."
                             )
                     );
 
     if (!template.getFamily().getId()
             .equals(membership.getFamily().getId())) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You cannot modify another family's chore template."
         );
     }
@@ -408,7 +409,7 @@ public ChoreAssignment assignChore(
                     );
 
     if (parentMembership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot assign chores."
         );
     }
@@ -416,7 +417,7 @@ public ChoreAssignment assignChore(
     ChoreTemplate template =
             choreTemplateRepository.findById(request.templateId())
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Chore template not found."
                             )
                     );
@@ -429,7 +430,7 @@ public ChoreAssignment assignChore(
 
     if (!template.getFamily().getId()
             .equals(parentMembership.getFamily().getId())) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You cannot assign another family's chore."
         );
     }
@@ -469,7 +470,7 @@ public ChoreAssignment assignChore(
 
         User child = userRepository.findById(childUserId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new NotFoundException(
                                 "Child user not found."
                         )
                 );
@@ -490,7 +491,7 @@ public ChoreAssignment assignChore(
 
         if (!childMembership.getFamily().getId()
                 .equals(parentMembership.getFamily().getId())) {
-            throw new IllegalArgumentException(
+            throw new ForbiddenException(
                     "You cannot assign chores to children in another family."
             );
         }
@@ -557,7 +558,7 @@ public List<ParentChoreSubmissionResponse> getPendingSubmissions(
                     );
 
     if (membership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot view pending chore submissions."
         );
     }
@@ -586,7 +587,7 @@ public List<ParentChoreSubmissionResponse> getSubmissionHistory(
                     );
 
     if (membership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot view family submission history."
         );
     }
@@ -631,7 +632,7 @@ public ParentChoreSubmissionResponse getSubmissionDetails(
                     );
 
     if (membership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot view parent submission details."
         );
     }
@@ -639,7 +640,7 @@ public ParentChoreSubmissionResponse getSubmissionDetails(
     ChoreSubmission submission =
             choreSubmissionRepository.findById(submissionId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Submission not found."
                             )
                     );
@@ -650,7 +651,7 @@ public ParentChoreSubmissionResponse getSubmissionDetails(
             .getId()
             .equals(membership.getFamily().getId())) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You cannot view another family's submission."
         );
     }
@@ -711,7 +712,7 @@ public ChoreAssignment updateAssignment(
                     );
 
     if (parentMembership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot edit chore assignments."
         );
     }
@@ -719,7 +720,7 @@ public ChoreAssignment updateAssignment(
     ChoreAssignment assignment =
             choreAssignmentRepository.findById(assignmentId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Chore assignment not found."
                             )
                     );
@@ -729,7 +730,7 @@ public ChoreAssignment updateAssignment(
             .getId()
             .equals(parentMembership.getFamily().getId())) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You cannot edit another family's chore assignment."
         );
     }
@@ -751,7 +752,7 @@ public ChoreAssignment updateAssignment(
     if (uniqueChildIds.size()
             != request.childUserIds().size()) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "The same child cannot be assigned twice."
         );
     }
@@ -767,7 +768,7 @@ public ChoreAssignment updateAssignment(
                         User child =
                                 userRepository.findById(childId)
                                         .orElseThrow(() ->
-                                                new IllegalArgumentException(
+                                                new NotFoundException(
                                                         "Child user not found."
                                                 )
                                         );
@@ -796,7 +797,7 @@ public ChoreAssignment updateAssignment(
                                                 .getId()
                                 )) {
 
-                            throw new IllegalArgumentException(
+                            throw new ForbiddenException(
                                     "You cannot assign chores to children in another family."
                             );
                         }
@@ -870,7 +871,7 @@ public ChoreSubmission submitChore(
     ChoreAssignment assignment =
             choreAssignmentRepository.findById(assignmentId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Chore assignment not found."
                             )
                     );
@@ -960,7 +961,7 @@ public ChoreSubmission submitChore(
     if (completedIds.size()
             != submittedChecklistIds.size()) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "The same checklist item cannot be submitted twice."
         );
     }
@@ -1239,7 +1240,7 @@ public ChoreSubmission approveSubmission(
                     );
 
     if (parentMembership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot approve chore submissions."
         );
     }
@@ -1247,7 +1248,7 @@ public ChoreSubmission approveSubmission(
     ChoreSubmission submission =
             choreSubmissionRepository.findById(submissionId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Submission not found."
                             )
                     );
@@ -1265,7 +1266,7 @@ public ChoreSubmission approveSubmission(
             .getId()
             .equals(parentMembership.getFamily().getId())) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You cannot approve another family's submission."
         );
     }
@@ -1426,13 +1427,13 @@ public ChoreSubmission rejectSubmission(
     FamilyMember parentMembership =
             familyMemberRepository.findByUser(parent)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
 
     if (parentMembership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot reject chore submissions."
         );
     }
@@ -1440,7 +1441,7 @@ public ChoreSubmission rejectSubmission(
     ChoreSubmission submission =
             choreSubmissionRepository.findById(submissionId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Submission not found."
                             )
                     );
@@ -1458,7 +1459,7 @@ public ChoreSubmission rejectSubmission(
             .getId()
             .equals(parentMembership.getFamily().getId())) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You cannot reject another family's submission."
         );
     }
@@ -1555,7 +1556,7 @@ public List<ParentChoreAssignmentResponse> getFamilyAssignments(
                     );
 
     if (membership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot view family chore history."
         );
     }
@@ -1596,13 +1597,13 @@ public ChoreAssignment cancelAssignment(
     FamilyMember membership =
             familyMemberRepository.findByUser(parent)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "User does not belong to a family."
                             )
                     );
 
     if (membership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot cancel chore assignments."
         );
     }
@@ -1610,7 +1611,7 @@ public ChoreAssignment cancelAssignment(
     ChoreAssignment assignment =
             choreAssignmentRepository.findById(assignmentId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Chore assignment not found."
                             )
                     );
@@ -1621,7 +1622,7 @@ public ChoreAssignment cancelAssignment(
             .getId()
             .equals(membership.getFamily().getId())) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You cannot cancel another family's chore assignment."
         );
     }

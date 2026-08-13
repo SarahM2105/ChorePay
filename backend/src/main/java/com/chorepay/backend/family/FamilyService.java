@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.chorepay.backend.user.UserType;
 import java.util.UUID;
+import com.chorepay.backend.exception.ForbiddenException;
+import com.chorepay.backend.exception.NotFoundException;
 
 import java.security.SecureRandom;
 
@@ -117,7 +119,7 @@ public FamilyMember approveJoinRequest(
     FamilyJoinRequest request =
             familyJoinRequestRepository.findById(requestId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Join request not found."
                             )
                     );
@@ -131,7 +133,7 @@ public FamilyMember approveJoinRequest(
     FamilyMember reviewerMembership =
             familyMemberRepository.findByUser(reviewer)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Reviewer does not belong to a family."
                             )
                     );
@@ -141,13 +143,13 @@ public FamilyMember approveJoinRequest(
             .getId()
             .equals(request.getFamily().getId())) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You cannot review requests for another family."
         );
     }
 
     if (reviewerMembership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot approve join requests."
         );
     }
@@ -155,7 +157,7 @@ public FamilyMember approveJoinRequest(
     User joiningUser = request.getRequestedByUser();
 
     if (familyMemberRepository.existsByUser(joiningUser)) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "User already belongs to a family."
         );
     }
@@ -185,13 +187,13 @@ public FamilyJoinRequest rejectJoinRequest(
     FamilyJoinRequest request =
             familyJoinRequestRepository.findById(requestId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Join request not found."
                             )
                     );
 
     if (request.getStatus() != FamilyJoinRequestStatus.PENDING) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Only pending requests can be rejected."
         );
     }
@@ -199,7 +201,7 @@ public FamilyJoinRequest rejectJoinRequest(
     FamilyMember reviewerMembership =
             familyMemberRepository.findByUser(reviewer)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new ForbiddenException(
                                     "Reviewer does not belong to a family."
                             )
                     );
@@ -209,13 +211,13 @@ public FamilyJoinRequest rejectJoinRequest(
             .getId()
             .equals(request.getFamily().getId())) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You cannot review requests for another family."
         );
     }
 
     if (reviewerMembership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot reject join requests."
         );
     }
@@ -230,7 +232,7 @@ public FamilyJoinRequest rejectJoinRequest(
 public FamilyMember getMembership(User user) {
     return familyMemberRepository.findByUser(user)
             .orElseThrow(() ->
-                    new IllegalArgumentException(
+                    new NotFoundException(
                             "User does not belong to a family."
                     )
             );
@@ -258,7 +260,7 @@ public java.util.List<JoinRequestResponse> getPendingJoinRequests(
     FamilyMember membership = getMembership(user);
 
     if (membership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot view join requests."
         );
     }
@@ -288,13 +290,13 @@ public FamilyJoinRequest cancelJoinRequest(
     FamilyJoinRequest request =
             familyJoinRequestRepository.findById(requestId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Join request not found."
                             )
                     );
 
     if (!request.getRequestedByUser().getId().equals(user.getId())) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You can only cancel your own join request."
         );
     }

@@ -13,6 +13,8 @@ import java.util.UUID;
 import com.chorepay.backend.notification.NotificationService;
 import com.chorepay.backend.notification.NotificationType;
 import java.time.Instant;
+import com.chorepay.backend.exception.ForbiddenException;
+import com.chorepay.backend.exception.NotFoundException;
 
 import java.util.List;
 
@@ -88,7 +90,7 @@ public RewardRedemption approveRedemption(
                     );
 
     if (parentMembership.getRole() == FamilyRole.CHILD) {
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "Children cannot approve reward requests."
         );
     }
@@ -96,7 +98,7 @@ public RewardRedemption approveRedemption(
     RewardRedemption redemption =
             rewardRedemptionRepository.findById(redemptionId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                             new NotFoundException(
                                     "Reward request not found."
                             )
                     );
@@ -114,7 +116,7 @@ public RewardRedemption approveRedemption(
     if (!reward.getFamily().getId()
             .equals(parentMembership.getFamily().getId())) {
 
-        throw new IllegalArgumentException(
+        throw new ForbiddenException(
                 "You cannot approve another family's reward request."
         );
     }
@@ -220,7 +222,7 @@ public RewardRedemption cancelRedemption(
     RewardRedemption redemption =
             rewardRedemptionRepository.findById(redemptionId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                             new NotFoundException(
                                     "Reward request not found."
                             )
                     );
@@ -271,7 +273,7 @@ public RewardRedemption fulfillRedemption(
     RewardRedemption redemption =
             rewardRedemptionRepository.findById(redemptionId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                             new NotFoundException(
                                     "Reward request not found."
                             )
                     );
@@ -338,7 +340,7 @@ public Reward updateReward(
     Reward reward =
             rewardRepository.findById(rewardId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                             new NotFoundException(
                                     "Reward not found."
                             )
                     );
@@ -428,7 +430,7 @@ public void deactivateReward(
     Reward reward =
             rewardRepository.findById(rewardId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                            new NotFoundException(
                                     "Reward not found."
                             )
                     );
@@ -495,7 +497,7 @@ public RewardRedemption rejectRedemption(
     RewardRedemption redemption =
             rewardRedemptionRepository.findById(redemptionId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                             new NotFoundException(
                                     "Reward request not found."
                             )
                     );
@@ -563,7 +565,7 @@ public RewardRedemption redeemReward(
     Reward reward =
             rewardRepository.findById(request.rewardId())
                     .orElseThrow(() ->
-                            new IllegalArgumentException(
+                             new NotFoundException(
                                     "Reward not found."
                             )
                     );
