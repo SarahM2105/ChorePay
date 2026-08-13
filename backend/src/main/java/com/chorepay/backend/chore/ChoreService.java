@@ -19,6 +19,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import com.chorepay.backend.challenge.FamilyChallengeService;
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 public class ChoreService {
@@ -33,8 +35,8 @@ public class ChoreService {
     private final RewardTransactionRepository rewardTransactionRepository;
     private final AchievementService achievementService;
     private final FamilyChallengeService familyChallengeService;
-    private final ChoreChecklistItemRepository
-        choreChecklistItemRepository;
+    private final ChoreChecklistItemRepository choreChecklistItemRepository;
+    private final ChoreSubmissionChecklistItemRepository choreSubmissionChecklistItemRepository;
 
 public ChoreService(
         ChoreTemplateRepository choreTemplateRepository,
@@ -47,7 +49,8 @@ public ChoreService(
         RewardTransactionRepository rewardTransactionRepository,
         AchievementService achievementService,
         FamilyChallengeService familyChallengeService,
-        ChoreChecklistItemRepository choreChecklistItemRepository
+        ChoreChecklistItemRepository choreChecklistItemRepository,
+        ChoreSubmissionChecklistItemRepository choreSubmissionChecklistItemRepository
 ) {
     this.choreTemplateRepository = choreTemplateRepository;
     this.familyMemberRepository = familyMemberRepository;
@@ -60,6 +63,7 @@ public ChoreService(
     this.achievementService = achievementService;
     this.familyChallengeService = familyChallengeService;
     this.choreChecklistItemRepository = choreChecklistItemRepository;
+    this.choreSubmissionChecklistItemRepository =choreSubmissionChecklistItemRepository;
 }
 
 @Transactional
@@ -531,6 +535,7 @@ public ChoreSubmission submitChore(
         UUID assignmentId,
         SubmitChoreRequest request
 ) {
+
     if (child.getUserType() != UserType.CHILD) {
         throw new IllegalArgumentException(
                 "Only children can submit chores."
@@ -558,8 +563,10 @@ public ChoreSubmission submitChore(
         );
     }
 
-    if (assignment.getStatus() == ChoreAssignmentStatus.APPROVED
-            || assignment.getStatus() == ChoreAssignmentStatus.CANCELLED) {
+    if (assignment.getStatus()
+            == ChoreAssignmentStatus.APPROVED
+            || assignment.getStatus()
+            == ChoreAssignmentStatus.CANCELLED) {
 
         throw new IllegalArgumentException(
                 "This chore can no longer be submitted."
@@ -580,7 +587,8 @@ public ChoreSubmission submitChore(
         );
     }
 
-    ChoreTemplate template = assignment.getChoreTemplate();
+    ChoreTemplate template =
+            assignment.getChoreTemplate();
 
     if (template.isPhotoRequired()
             && (request.photoUrl() == null
@@ -600,32 +608,161 @@ public ChoreSubmission submitChore(
         );
     }
 
-    long previousSubmissions =
-            choreSubmissionRepository.countByAssignment(
-                    assignment
+    /*
+     * Load the checklist belonging to this chore.
+     */
+    List<ChoreChecklistItem> checklist =
+            choreChecklistItemRepository
+                    .findByChoreTemplateOrderByDisplayOrderAsc(
+                            template
+                    );
+
+    /*
+     * Convert submitted IDs into a Set.
+     * Null means the child ticked nothing.
+     */
+    List<UUID> submittedChecklistIds =
+            request.completedChecklistItemIds() == null
+                    ? List.of()
+                    : request.completedChecklistItemIds();
+
+    Set<UUID> completedIds =
+            new HashSet<>(submittedChecklistIds);
+
+    /*
+     * Prevent duplicate checklist IDs.
+     */
+    if (completedIds.size()
+            != submittedChecklistIds.size()) {
+
+        throw new IllegalArgumentException(
+                "The same checklist item cannot be submitted twice."
+        );
+    }
+
+    /*
+     * Ensure every submitted ID actually belongs
+     * to this chore's checklist.
+     */
+    Set<UUID> validChecklistIds =
+            checklist.stream()
+                    .map(ChoreChecklistItem::getId)
+                    .collect(
+                            java.util.stream.Collectors.toSet()
+                    );
+
+    for (UUID completedId : completedIds) {
+
+        if (!validChecklistIds.contains(completedId)) {
+            throw new IllegalArgumentException(
+                    "A submitted checklist item does not belong to this chore."
             );
+        }
+    }
 
-    ChoreSubmission submission = new ChoreSubmission();
+    /*
+     * Every required checklist step must be completed.
+     */
+    for (ChoreChecklistItem checklistItem : checklist) {
 
-    submission.setAssignment(assignment);
-    submission.setSubmittedByUser(child);
+        if (checklistItem.isRequired()
+                && !completedIds.contains(
+                        checklistItem.getId()
+                )) {
+
+            throw new IllegalArgumentException(
+                    "All required checklist items must be completed."
+            );
+        }
+    }
+
+    long previousSubmissions =
+            choreSubmissionRepository
+                    .countByAssignment(
+                            assignment
+                    );
+
+    ChoreSubmission submission =
+            new ChoreSubmission();
+
+    submission.setAssignment(
+            assignment
+    );
+
+    submission.setSubmittedByUser(
+            child
+    );
+
     submission.setSubmissionNumber(
             (int) previousSubmissions + 1
     );
 
-    submission.setComment(request.comment());
-    submission.setPhotoUrl(request.photoUrl());
+    submission.setComment(
+            request.comment()
+    );
+
+    submission.setPhotoUrl(
+            request.photoUrl()
+    );
+
     submission.setStatus(
             ChoreSubmissionStatus.PENDING
     );
+
+    /*
+     * Save first because checklist rows need
+     * the submission ID.
+     */
+    ChoreSubmission savedSubmission =
+            choreSubmissionRepository.save(
+                    submission
+            );
+
+    /*
+     * Snapshot the full checklist and record
+     * which items the child completed.
+     */
+    for (ChoreChecklistItem checklistItem : checklist) {
+
+        ChoreSubmissionChecklistItem submissionItem =
+                new ChoreSubmissionChecklistItem();
+
+        submissionItem.setSubmission(
+                savedSubmission
+        );
+
+        submissionItem.setChecklistItemId(
+                checklistItem.getId()
+        );
+
+        submissionItem.setTextSnapshot(
+                checklistItem.getText()
+        );
+
+        submissionItem.setRequiredSnapshot(
+                checklistItem.isRequired()
+        );
+
+        submissionItem.setCompleted(
+                completedIds.contains(
+                        checklistItem.getId()
+                )
+        );
+
+        choreSubmissionChecklistItemRepository.save(
+                submissionItem
+        );
+    }
 
     assignment.setStatus(
             ChoreAssignmentStatus.SUBMITTED
     );
 
-    choreAssignmentRepository.save(assignment);
+    choreAssignmentRepository.save(
+            assignment
+    );
 
-    return choreSubmissionRepository.save(submission);
+    return savedSubmission;
 }
 
 public List<ChildChoreAssignmentResponse> getMyAssignments(
@@ -733,6 +870,21 @@ private ChildChoreAssignmentResponse toChildAssignmentResponse(
 public ChoreSubmissionResponse toSubmissionResponse(
         ChoreSubmission submission
 ) {
+
+    List<SubmissionChecklistItemResponse> checklist =
+            choreSubmissionChecklistItemRepository
+                    .findBySubmission(submission)
+                    .stream()
+                    .map(item ->
+                            new SubmissionChecklistItemResponse(
+                                    item.getChecklistItemId(),
+                                    item.getTextSnapshot(),
+                                    item.isRequiredSnapshot(),
+                                    item.isCompleted()
+                            )
+                    )
+                    .toList();
+
     return new ChoreSubmissionResponse(
             submission.getId(),
             submission.getAssignment().getId(),
@@ -741,7 +893,8 @@ public ChoreSubmissionResponse toSubmissionResponse(
             submission.getPhotoUrl(),
             submission.getStatus(),
             submission.getSubmittedAt(),
-            submission.getParentFeedback()
+            submission.getParentFeedback(),
+            checklist
     );
 }
 
