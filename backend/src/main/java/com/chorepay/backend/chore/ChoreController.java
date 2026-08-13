@@ -183,6 +183,26 @@ getSubmissionDetails(
     );
 }
 
+@PutMapping("/assignments/{assignmentId}")
+public ResponseEntity<ChoreAssignmentResponse> updateAssignment(
+        @AuthenticationPrincipal User user,
+        @PathVariable UUID assignmentId,
+        @Valid @RequestBody UpdateChoreAssignmentRequest request
+) {
+
+    ChoreAssignment assignment =
+            choreService.updateAssignment(
+                    user,
+                    assignmentId,
+                    request
+            );
+
+    return ResponseEntity.ok(
+            choreService.toAssignmentResponse(
+                    assignment
+            )
+    );
+}
 
 @PostMapping("/assignments/{assignmentId}/submit")
 public ResponseEntity<ChoreSubmissionResponse> submitChore(

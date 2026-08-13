@@ -681,6 +681,165 @@ private ParentChoreSubmissionResponse toParentSubmissionResponse(
 }
 
 @Transactional
+public ChoreAssignment updateAssignment(
+        User parent,
+        UUID assignmentId,
+        UpdateChoreAssignmentRequest request
+) {
+
+    FamilyMember parentMembership =
+            familyMemberRepository.findByUser(parent)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "User does not belong to a family."
+                            )
+                    );
+
+    if (parentMembership.getRole() == FamilyRole.CHILD) {
+        throw new IllegalArgumentException(
+                "Children cannot edit chore assignments."
+        );
+    }
+
+    ChoreAssignment assignment =
+            choreAssignmentRepository.findById(assignmentId)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "Chore assignment not found."
+                            )
+                    );
+
+    if (!assignment.getChoreTemplate()
+            .getFamily()
+            .getId()
+            .equals(parentMembership.getFamily().getId())) {
+
+        throw new IllegalArgumentException(
+                "You cannot edit another family's chore assignment."
+        );
+    }
+
+    if (assignment.getStatus() != ChoreAssignmentStatus.ASSIGNED
+            && assignment.getStatus() != ChoreAssignmentStatus.OVERDUE) {
+
+        throw new IllegalArgumentException(
+                "Only assigned or overdue chores can be edited."
+        );
+    }
+
+    /*
+     * Prevent duplicate children.
+     */
+    Set<UUID> uniqueChildIds =
+            new HashSet<>(request.childUserIds());
+
+    if (uniqueChildIds.size()
+            != request.childUserIds().size()) {
+
+        throw new IllegalArgumentException(
+                "The same child cannot be assigned twice."
+        );
+    }
+
+    /*
+     * Validate all children before changing anything.
+     */
+    List<User> children =
+            uniqueChildIds
+                    .stream()
+                    .map(childId -> {
+
+                        User child =
+                                userRepository.findById(childId)
+                                        .orElseThrow(() ->
+                                                new IllegalArgumentException(
+                                                        "Child user not found."
+                                                )
+                                        );
+
+                        if (child.getUserType() != UserType.CHILD) {
+                            throw new IllegalArgumentException(
+                                    "Chores can only be assigned to child accounts."
+                            );
+                        }
+
+                        FamilyMember childMembership =
+                                familyMemberRepository
+                                        .findByUser(child)
+                                        .orElseThrow(() ->
+                                                new IllegalArgumentException(
+                                                        "Child does not belong to a family."
+                                                )
+                                        );
+
+                        if (!childMembership
+                                .getFamily()
+                                .getId()
+                                .equals(
+                                        parentMembership
+                                                .getFamily()
+                                                .getId()
+                                )) {
+
+                            throw new IllegalArgumentException(
+                                    "You cannot assign chores to children in another family."
+                            );
+                        }
+
+                        return child;
+                    })
+                    .toList();
+
+    assignment.setDueAt(
+            request.dueAt()
+    );
+
+    /*
+     * Recalculate whether it should still be overdue.
+     */
+    if (request.dueAt() != null
+            && request.dueAt().isBefore(Instant.now())) {
+
+        assignment.setStatus(
+                ChoreAssignmentStatus.OVERDUE
+        );
+
+    } else {
+
+        assignment.setStatus(
+                ChoreAssignmentStatus.ASSIGNED
+        );
+    }
+
+    /*
+     * Replace existing participants.
+     */
+    assignmentParticipantRepository
+            .deleteByAssignment(assignment);
+
+    for (User child : children) {
+
+        AssignmentParticipant participant =
+                new AssignmentParticipant();
+
+        participant.setAssignment(assignment);
+        participant.setChildUser(child);
+
+        participant.setParticipationStatus(
+                ParticipationStatus.ASSIGNED
+        );
+
+        assignmentParticipantRepository.save(
+                participant
+        );
+    }
+
+    return choreAssignmentRepository.save(
+            assignment
+    );
+}
+
+@Transactional
 public ChoreSubmission submitChore(
         User child,
         UUID assignmentId,

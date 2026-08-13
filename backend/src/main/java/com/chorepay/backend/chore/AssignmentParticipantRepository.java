@@ -21,4 +21,8 @@ public interface AssignmentParticipantRepository
             ChoreAssignment assignment,
             User childUser
     );
+
+    void deleteByAssignment(
+        ChoreAssignment assignment
+);
 }
