@@ -2,12 +2,23 @@ package com.chorepay.backend.chore;
 
 import com.chorepay.backend.user.User;
 import jakarta.persistence.*;
-
+import java.time.LocalDate;
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "chore_assignments")
+@Table(
+        name = "chore_assignments",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_schedule_scheduled_date",
+                        columnNames = {
+                                "schedule_id",
+                                "scheduled_for_date"
+                        }
+                )
+        }
+)
 public class ChoreAssignment {
 
     @Id
@@ -28,6 +39,9 @@ public class ChoreAssignment {
 
     @Column(name = "due_at")
     private Instant dueAt;
+
+    @Column(name = "scheduled_for_date")
+    private LocalDate scheduledForDate;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -107,6 +121,16 @@ public class ChoreAssignment {
     public void setDueAt(Instant dueAt) {
         this.dueAt = dueAt;
     }
+
+    public LocalDate getScheduledForDate() {
+    return scheduledForDate;
+}
+
+public void setScheduledForDate(
+        LocalDate scheduledForDate
+) {
+    this.scheduledForDate = scheduledForDate;
+}
 
     public ChoreAssignmentStatus getStatus() {
         return status;

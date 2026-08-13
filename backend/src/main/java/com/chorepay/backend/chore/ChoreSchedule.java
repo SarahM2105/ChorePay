@@ -1,7 +1,7 @@
 package com.chorepay.backend.chore;
 
 import jakarta.persistence.*;
-
+import com.chorepay.backend.user.User;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -14,6 +14,10 @@ public class ChoreSchedule {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "created_by_user_id", nullable = false)
+    private User createdByUser;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "chore_template_id", nullable = false)
@@ -79,6 +83,14 @@ public class ChoreSchedule {
     public LocalDate getStartDate() {
         return startDate;
     }
+
+    public User getCreatedByUser() {
+    return createdByUser;
+}
+
+public void setCreatedByUser(User createdByUser) {
+    this.createdByUser = createdByUser;
+}
 
     public void setStartDate(LocalDate startDate) {
         this.startDate = startDate;
