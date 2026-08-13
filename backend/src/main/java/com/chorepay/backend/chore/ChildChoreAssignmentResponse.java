@@ -1,6 +1,7 @@
 package com.chorepay.backend.chore;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record ChildChoreAssignmentResponse(
@@ -24,6 +25,8 @@ public record ChildChoreAssignmentResponse(
         Integer xpReward,
 
         Integer moneyRewardPence,
+
+        List<ChoreChecklistItemResponse> checklist,
 
         ChoreSubmissionStatus latestSubmissionStatus,
 

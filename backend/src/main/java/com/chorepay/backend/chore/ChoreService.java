@@ -689,6 +689,22 @@ private ChildChoreAssignmentResponse toChildAssignmentResponse(
                     )
                     .orElse(null);
 
+    List<ChoreChecklistItemResponse> checklist =
+            choreChecklistItemRepository
+                    .findByChoreTemplateOrderByDisplayOrderAsc(
+                            assignment.getChoreTemplate()
+                    )
+                    .stream()
+                    .map(item ->
+                            new ChoreChecklistItemResponse(
+                                    item.getId(),
+                                    item.getText(),
+                                    item.getDisplayOrder(),
+                                    item.isRequired()
+                            )
+                    )
+                    .toList();
+
     return new ChildChoreAssignmentResponse(
             assignment.getId(),
             assignment.getChoreTemplate().getId(),
@@ -700,6 +716,7 @@ private ChildChoreAssignmentResponse toChildAssignmentResponse(
             assignment.getCoinRewardSnapshot(),
             assignment.getXpRewardSnapshot(),
             assignment.getMoneyRewardPenceSnapshot(),
+            checklist,
 
             latestSubmission == null
                     ? null
