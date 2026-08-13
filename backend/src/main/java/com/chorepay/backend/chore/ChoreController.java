@@ -109,6 +109,40 @@ getMyAssignments(
     );
 }
 
+@PutMapping("/{templateId}/checklist")
+public ResponseEntity<List<ChoreChecklistItemResponse>>
+updateChecklist(
+        @AuthenticationPrincipal User user,
+        @PathVariable UUID templateId,
+        @Valid @RequestBody UpdateChoreChecklistRequest request
+) {
+
+    return ResponseEntity.ok(
+            choreService.updateChecklist(
+                    user,
+                    templateId,
+                    request
+            )
+    );
+}
+
+@GetMapping("/{templateId}/checklist")
+public ResponseEntity<List<ChoreChecklistItemResponse>>
+getChecklist(
+        @AuthenticationPrincipal User user,
+        @PathVariable UUID templateId
+) {
+
+    return ResponseEntity.ok(
+            choreService.getChecklist(
+                    user,
+                    templateId
+            )
+    );
+}
+
+
+
 @PostMapping("/assignments/{assignmentId}/submit")
 public ResponseEntity<ChoreSubmissionResponse> submitChore(
         @AuthenticationPrincipal User user,

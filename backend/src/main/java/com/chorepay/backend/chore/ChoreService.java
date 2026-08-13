@@ -33,6 +33,8 @@ public class ChoreService {
     private final RewardTransactionRepository rewardTransactionRepository;
     private final AchievementService achievementService;
     private final FamilyChallengeService familyChallengeService;
+    private final ChoreChecklistItemRepository
+        choreChecklistItemRepository;
 
 public ChoreService(
         ChoreTemplateRepository choreTemplateRepository,
@@ -44,7 +46,8 @@ public ChoreService(
         UserProgressRepository userProgressRepository,
         RewardTransactionRepository rewardTransactionRepository,
         AchievementService achievementService,
-        FamilyChallengeService familyChallengeService
+        FamilyChallengeService familyChallengeService,
+        ChoreChecklistItemRepository choreChecklistItemRepository
 ) {
     this.choreTemplateRepository = choreTemplateRepository;
     this.familyMemberRepository = familyMemberRepository;
@@ -56,7 +59,125 @@ public ChoreService(
     this.rewardTransactionRepository = rewardTransactionRepository;
     this.achievementService = achievementService;
     this.familyChallengeService = familyChallengeService;
+    this.choreChecklistItemRepository = choreChecklistItemRepository;
 }
+
+@Transactional
+public List<ChoreChecklistItemResponse> updateChecklist(
+        User parent,
+        UUID templateId,
+        UpdateChoreChecklistRequest request
+) {
+
+    FamilyMember membership =
+            familyMemberRepository.findByUser(parent)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "User does not belong to a family."
+                            )
+                    );
+
+    if (membership.getRole() == FamilyRole.CHILD) {
+        throw new IllegalArgumentException(
+                "Children cannot edit chore checklists."
+        );
+    }
+
+    ChoreTemplate template =
+            choreTemplateRepository.findById(templateId)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "Chore template not found."
+                            )
+                    );
+
+    if (!template.getFamily()
+            .getId()
+            .equals(membership.getFamily().getId())) {
+
+        throw new IllegalArgumentException(
+                "You cannot edit another family's chore checklist."
+        );
+    }
+
+    choreChecklistItemRepository
+            .deleteByChoreTemplate(template);
+
+    int displayOrder = 1;
+
+    for (ChecklistItemRequest itemRequest
+            : request.items()) {
+
+        ChoreChecklistItem item =
+                new ChoreChecklistItem();
+
+        item.setChoreTemplate(template);
+        item.setText(itemRequest.text());
+        item.setRequired(itemRequest.required());
+        item.setDisplayOrder(displayOrder);
+
+        choreChecklistItemRepository.save(item);
+
+        displayOrder++;
+    }
+
+    return getChecklistResponse(template);
+}
+
+public List<ChoreChecklistItemResponse> getChecklist(
+        User user,
+        UUID templateId
+) {
+
+    FamilyMember membership =
+            familyMemberRepository.findByUser(user)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "User does not belong to a family."
+                            )
+                    );
+
+    ChoreTemplate template =
+            choreTemplateRepository.findById(templateId)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "Chore template not found."
+                            )
+                    );
+
+    if (!template.getFamily()
+            .getId()
+            .equals(membership.getFamily().getId())) {
+
+        throw new IllegalArgumentException(
+                "You cannot view another family's chore checklist."
+        );
+    }
+
+    return getChecklistResponse(template);
+}
+
+private List<ChoreChecklistItemResponse> getChecklistResponse(
+        ChoreTemplate template
+) {
+
+    return choreChecklistItemRepository
+            .findByChoreTemplateOrderByDisplayOrderAsc(
+                    template
+            )
+            .stream()
+            .map(item ->
+                    new ChoreChecklistItemResponse(
+                            item.getId(),
+                            item.getText(),
+                            item.getDisplayOrder(),
+                            item.isRequired()
+                    )
+            )
+            .toList();
+}
+
+
     @Transactional
     public ChoreTemplate createTemplate(
             User user,
