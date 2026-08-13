@@ -141,7 +141,16 @@ getChecklist(
     );
 }
 
+@GetMapping("/submissions/pending")
+public ResponseEntity<List<ParentChoreSubmissionResponse>>
+getPendingSubmissions(
+        @AuthenticationPrincipal User user
+) {
 
+    return ResponseEntity.ok(
+            choreService.getPendingSubmissions(user)
+    );
+}
 
 @PostMapping("/assignments/{assignmentId}/submit")
 public ResponseEntity<ChoreSubmissionResponse> submitChore(

@@ -5,6 +5,7 @@ import com.chorepay.backend.user.User;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import com.chorepay.backend.family.Family;
 
 public interface ChoreSubmissionRepository
         extends JpaRepository<ChoreSubmission, UUID> {
@@ -17,6 +18,12 @@ public interface ChoreSubmissionRepository
             ChoreAssignment assignment,
             ChoreSubmissionStatus status
     );
+
+    List<ChoreSubmission>
+findByAssignment_ChoreTemplate_FamilyAndStatusOrderBySubmittedAtAsc(
+        Family family,
+        ChoreSubmissionStatus status
+);
 
     Optional<ChoreSubmission>
 findTopByAssignmentAndSubmittedByUserOrderBySubmissionNumberDesc(

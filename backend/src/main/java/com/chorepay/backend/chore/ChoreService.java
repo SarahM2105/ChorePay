@@ -529,6 +529,70 @@ public ChoreAssignmentResponse toAssignmentResponse(
     );
 }
 
+public List<ParentChoreSubmissionResponse> getPendingSubmissions(
+        User parent
+) {
+
+    FamilyMember membership =
+            familyMemberRepository.findByUser(parent)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "User does not belong to a family."
+                            )
+                    );
+
+    if (membership.getRole() == FamilyRole.CHILD) {
+        throw new IllegalArgumentException(
+                "Children cannot view pending chore submissions."
+        );
+    }
+
+    return choreSubmissionRepository
+            .findByAssignment_ChoreTemplate_FamilyAndStatusOrderBySubmittedAtAsc(
+                    membership.getFamily(),
+                    ChoreSubmissionStatus.PENDING
+            )
+            .stream()
+            .map(this::toParentSubmissionResponse)
+            .toList();
+}
+
+private ParentChoreSubmissionResponse toParentSubmissionResponse(
+        ChoreSubmission submission
+) {
+
+    List<SubmissionChecklistItemResponse> checklist =
+            choreSubmissionChecklistItemRepository
+                    .findBySubmission(submission)
+                    .stream()
+                    .map(item ->
+                            new SubmissionChecklistItemResponse(
+                                    item.getChecklistItemId(),
+                                    item.getTextSnapshot(),
+                                    item.isRequiredSnapshot(),
+                                    item.isCompleted()
+                            )
+                    )
+                    .toList();
+
+    return new ParentChoreSubmissionResponse(
+            submission.getId(),
+            submission.getAssignment().getId(),
+            submission.getAssignment()
+                    .getChoreTemplate()
+                    .getTitle(),
+            submission.getSubmittedByUser().getId(),
+            submission.getSubmittedByUser().getName(),
+            submission.getSubmissionNumber(),
+            submission.getComment(),
+            submission.getPhotoUrl(),
+            submission.getSubmittedAt(),
+            checklist
+    );
+}
+
+
+
 @Transactional
 public ChoreSubmission submitChore(
         User child,
@@ -897,6 +961,8 @@ public ChoreSubmissionResponse toSubmissionResponse(
             checklist
     );
 }
+
+
 
 @Transactional
 public ChoreSubmission approveSubmission(
