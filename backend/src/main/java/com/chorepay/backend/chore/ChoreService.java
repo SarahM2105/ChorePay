@@ -22,6 +22,9 @@ import com.chorepay.backend.challenge.FamilyChallengeService;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.chorepay.backend.notification.NotificationService;
+import com.chorepay.backend.notification.NotificationType;
+
 @Service
 public class ChoreService {
 
@@ -37,6 +40,7 @@ public class ChoreService {
     private final FamilyChallengeService familyChallengeService;
     private final ChoreChecklistItemRepository choreChecklistItemRepository;
     private final ChoreSubmissionChecklistItemRepository choreSubmissionChecklistItemRepository;
+    private final NotificationService notificationService;
 
 public ChoreService(
         ChoreTemplateRepository choreTemplateRepository,
@@ -50,7 +54,8 @@ public ChoreService(
         AchievementService achievementService,
         FamilyChallengeService familyChallengeService,
         ChoreChecklistItemRepository choreChecklistItemRepository,
-        ChoreSubmissionChecklistItemRepository choreSubmissionChecklistItemRepository
+        ChoreSubmissionChecklistItemRepository choreSubmissionChecklistItemRepository,
+        NotificationService notificationService
 ) {
     this.choreTemplateRepository = choreTemplateRepository;
     this.familyMemberRepository = familyMemberRepository;
@@ -64,6 +69,7 @@ public ChoreService(
     this.familyChallengeService = familyChallengeService;
     this.choreChecklistItemRepository = choreChecklistItemRepository;
     this.choreSubmissionChecklistItemRepository =choreSubmissionChecklistItemRepository;
+    this.notificationService = notificationService;
 }
 
 @Transactional
@@ -499,6 +505,15 @@ public ChoreAssignment assignChore(
         );
 
         assignmentParticipantRepository.save(participant);
+        notificationService.createNotification(
+        child,
+        NotificationType.CHORE_ASSIGNED,
+        "New chore",
+        "You've been assigned "
+                + template.getTitle()
+                + ".",
+        savedAssignment.getId()
+);
     }
 
     return savedAssignment;
@@ -1391,7 +1406,14 @@ if (rewardedParticipantCount > 0) {
 
     submission.setRewardIssued(true);
     choreAssignmentRepository.save(assignment);
-
+    notificationService.createNotification(
+        submission.getSubmittedByUser(),
+        NotificationType.CHORE_APPROVED,
+        "Chore approved!",
+        assignment.getChoreTemplate().getTitle()
+                + " was approved.",
+        assignment.getId()
+);
     return choreSubmissionRepository.save(submission);
 }
 
@@ -1441,16 +1463,37 @@ public ChoreSubmission rejectSubmission(
         );
     }
 
-    submission.setStatus(ChoreSubmissionStatus.REJECTED);
-    submission.setReviewedByUser(parent);
-    submission.setReviewedAt(Instant.now());
-    submission.setParentFeedback(request.feedback());
+    submission.setStatus(
+        ChoreSubmissionStatus.REJECTED
+);
 
-    assignment.setStatus(ChoreAssignmentStatus.REJECTED);
+submission.setReviewedByUser(parent);
+submission.setReviewedAt(Instant.now());
 
-    choreAssignmentRepository.save(assignment);
+submission.setParentFeedback(
+        request.feedback()
+);
 
-    return choreSubmissionRepository.save(submission);
+assignment.setStatus(
+        ChoreAssignmentStatus.REJECTED
+);
+
+choreAssignmentRepository.save(
+        assignment
+);
+
+notificationService.createNotification(
+        submission.getSubmittedByUser(),
+        NotificationType.CHORE_REJECTED,
+        "Chore needs another try",
+        assignment.getChoreTemplate().getTitle()
+                + " was sent back for another try.",
+        assignment.getId()
+);
+
+return choreSubmissionRepository.save(
+        submission
+);
 }
 
 private int applyPenalty(

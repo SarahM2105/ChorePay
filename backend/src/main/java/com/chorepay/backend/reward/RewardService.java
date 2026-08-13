@@ -10,7 +10,8 @@ import com.chorepay.backend.progress.UserProgress;
 import com.chorepay.backend.progress.UserProgressRepository;
 import com.chorepay.backend.user.UserType;
 import java.util.UUID;
-
+import com.chorepay.backend.notification.NotificationService;
+import com.chorepay.backend.notification.NotificationType;
 import java.time.Instant;
 
 import java.util.List;
@@ -23,19 +24,22 @@ public class RewardService {
     private final RewardRedemptionRepository rewardRedemptionRepository;
     private final UserProgressRepository userProgressRepository;
     private final RewardTransactionRepository rewardTransactionRepository;
+    private final NotificationService notificationService;
 
     public RewardService(
         RewardRepository rewardRepository,
         FamilyMemberRepository familyMemberRepository,
         RewardRedemptionRepository rewardRedemptionRepository,
         UserProgressRepository userProgressRepository,
-        RewardTransactionRepository rewardTransactionRepository
+        RewardTransactionRepository rewardTransactionRepository,
+        NotificationService notificationService
 ) {
     this.rewardRepository = rewardRepository;
     this.familyMemberRepository = familyMemberRepository;
     this.rewardRedemptionRepository = rewardRedemptionRepository;
     this.userProgressRepository = userProgressRepository;
     this.rewardTransactionRepository = rewardTransactionRepository;
+    this.notificationService = notificationService;
 }
 
 
@@ -181,13 +185,24 @@ public RewardRedemption approveRedemption(
     rewardTransactionRepository.save(transaction);
 
     redemption.setStatus(
-            RewardRedemptionStatus.APPROVED
-    );
+        RewardRedemptionStatus.APPROVED
+);
 
-    redemption.setReviewedByUser(parent);
-    redemption.setReviewedAt(Instant.now());
+redemption.setReviewedByUser(parent);
+redemption.setReviewedAt(Instant.now());
 
-    return rewardRedemptionRepository.save(redemption);
+notificationService.createNotification(
+        redemption.getChildUser(),
+        NotificationType.REWARD_APPROVED,
+        "Reward approved!",
+        redemption.getRewardNameSnapshot()
+                + " was approved.",
+        redemption.getId()
+);
+
+return rewardRedemptionRepository.save(
+        redemption
+);
 }
 
 @Transactional
@@ -282,6 +297,15 @@ public RewardRedemption fulfillRedemption(
     redemption.setStatus(
             RewardRedemptionStatus.FULFILLED
     );
+
+    notificationService.createNotification(
+        redemption.getChildUser(),
+        NotificationType.REWARD_FULFILLED,
+        "Reward ready!",
+        redemption.getRewardNameSnapshot()
+                + " has been fulfilled.",
+        redemption.getId()
+);
 
     redemption.setFulfilledAt(
             Instant.now()
@@ -497,6 +521,14 @@ public RewardRedemption rejectRedemption(
     redemption.setStatus(
             RewardRedemptionStatus.REJECTED
     );
+        notificationService.createNotification(
+        redemption.getChildUser(),
+        NotificationType.REWARD_REJECTED,
+        "Reward request declined",
+        redemption.getRewardNameSnapshot()
+                + " was not approved.",
+        redemption.getId()
+);
 
     redemption.setReviewedByUser(parent);
     redemption.setReviewedAt(Instant.now());
@@ -505,6 +537,7 @@ public RewardRedemption rejectRedemption(
     );
 
     return rewardRedemptionRepository.save(redemption);
+
 }
 
 @Transactional
@@ -643,7 +676,39 @@ public RewardRedemption redeemReward(
             RewardRedemptionStatus.PENDING
     );
 
-    return rewardRedemptionRepository.save(redemption);
+    RewardRedemption savedRedemption =
+            rewardRedemptionRepository.save(
+                    redemption
+            );
+
+    /*
+     * Notify all parents/owner in the family
+     * that a reward request is waiting.
+     */
+    List<FamilyMember> familyMembers =
+            familyMemberRepository.findByFamily(
+                    membership.getFamily()
+            );
+
+    for (FamilyMember familyMember : familyMembers) {
+
+        if (familyMember.getRole() == FamilyRole.PARENT
+                || familyMember.getRole() == FamilyRole.OWNER) {
+
+            notificationService.createNotification(
+                    familyMember.getUser(),
+                    NotificationType.REWARD_REQUESTED,
+                    "Reward request",
+                    child.getName()
+                            + " requested "
+                            + reward.getName()
+                            + ".",
+                    savedRedemption.getId()
+            );
+        }
+    }
+
+    return savedRedemption;
 }
 
 public RewardRedemptionResponse toRedemptionResponse(

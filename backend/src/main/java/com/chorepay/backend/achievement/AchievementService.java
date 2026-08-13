@@ -4,6 +4,8 @@ import com.chorepay.backend.progress.UserProgress;
 import com.chorepay.backend.user.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.chorepay.backend.notification.NotificationService;
+import com.chorepay.backend.notification.NotificationType;
 
 import java.util.List;
 
@@ -12,14 +14,17 @@ public class AchievementService {
 
     private final AchievementRepository achievementRepository;
     private final UserAchievementRepository userAchievementRepository;
+    private final NotificationService notificationService;
 
     public AchievementService(
-            AchievementRepository achievementRepository,
-            UserAchievementRepository userAchievementRepository
-    ) {
-        this.achievementRepository = achievementRepository;
-        this.userAchievementRepository = userAchievementRepository;
-    }
+        AchievementRepository achievementRepository,
+        UserAchievementRepository userAchievementRepository,
+        NotificationService notificationService
+) {
+    this.achievementRepository = achievementRepository;
+    this.userAchievementRepository = userAchievementRepository;
+    this.notificationService = notificationService;
+}
 
     @Transactional
     public void checkAndUnlockAchievements(
@@ -74,6 +79,15 @@ public class AchievementService {
             userAchievement.setAchievement(achievement);
 
             userAchievementRepository.save(userAchievement);
+            notificationService.createNotification(
+        child,
+        NotificationType.ACHIEVEMENT_UNLOCKED,
+        "Achievement unlocked!",
+        "You unlocked "
+                + achievement.getName()
+                + "!",
+        achievement.getId()
+);
         }
     }
 
