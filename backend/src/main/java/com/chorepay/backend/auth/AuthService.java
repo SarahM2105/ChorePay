@@ -24,26 +24,34 @@ public class AuthService {
     this.jwtService = jwtService;
 }
 
-    public User register(RegisterRequest request) {
+public User register(RegisterRequest request) {
 
-        if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException(
-                    "An account with this email already exists."
-            );
-        }
+    String normalizedEmail =
+            request.email().toLowerCase();
 
-        User user = new User();
-
-        user.setName(request.name());
-        user.setEmail(request.email().toLowerCase());
-        user.setPasswordHash(
-                passwordEncoder.encode(request.password())
+    if (userRepository.existsByEmail(normalizedEmail)) {
+        throw new IllegalArgumentException(
+                "An account with this email already exists."
         );
-        user.setUserType(request.userType());
-
-        return userRepository.save(user);
     }
 
+    User user = new User();
+
+    user.setName(request.name());
+    user.setEmail(normalizedEmail);
+
+    user.setPasswordHash(
+            passwordEncoder.encode(
+                    request.password()
+            )
+    );
+
+    user.setUserType(
+            request.userType()
+    );
+
+    return userRepository.save(user);
+}
     public LoginResponse login(LoginRequest request) {
 
     User user = userRepository.findByEmail(

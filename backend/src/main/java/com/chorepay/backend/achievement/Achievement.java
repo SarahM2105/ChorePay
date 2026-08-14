@@ -1,7 +1,8 @@
 package com.chorepay.backend.achievement;
 
 import jakarta.persistence.*;
-
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
 
