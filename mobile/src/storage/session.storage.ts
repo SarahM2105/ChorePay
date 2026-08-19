@@ -1,37 +1,64 @@
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
-const TOKEN_KEY = 'chorepay_token';
+import { AuthSession } from '../types/auth';
 
-export async function saveToken(
-  token: string
+const SESSION_KEY = 'chorepay_session';
+
+export async function saveSession(
+  session: AuthSession
 ) {
+  const value = JSON.stringify(session);
+
   if (Platform.OS === 'web') {
-    localStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(
+      SESSION_KEY,
+      value
+    );
+
     return;
   }
 
   await SecureStore.setItemAsync(
-    TOKEN_KEY,
-    token
+    SESSION_KEY,
+    value
   );
 }
 
-export async function getToken() {
+export async function getSession():
+  Promise<AuthSession | null> {
+  let value: string | null;
+
   if (Platform.OS === 'web') {
-    return localStorage.getItem(TOKEN_KEY);
+    value =
+      localStorage.getItem(SESSION_KEY);
+  } else {
+    value =
+      await SecureStore.getItemAsync(
+        SESSION_KEY
+      );
   }
 
-  return SecureStore.getItemAsync(TOKEN_KEY);
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(value) as AuthSession;
+  } catch {
+    await removeSession();
+
+    return null;
+  }
 }
 
-export async function removeToken() {
+export async function removeSession() {
   if (Platform.OS === 'web') {
-    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(SESSION_KEY);
     return;
   }
 
   await SecureStore.deleteItemAsync(
-    TOKEN_KEY
+    SESSION_KEY
   );
 }

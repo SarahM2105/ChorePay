@@ -2,7 +2,7 @@ import {
   router,
   useLocalSearchParams,
 } from 'expo-router';
-import { saveToken } from '../storage/session.storage';
+import { useAuth } from '../context/AuthContext';
 
 import { useState } from 'react';
 
@@ -22,6 +22,7 @@ import { commonStyles } from '../styles/common.styles';
 import { loginStyles } from '../styles/screens/login.styles';
 
 export default function LoginScreen() {
+    const { signIn } = useAuth();   
   const { width } = useWindowDimensions();
 
   const isDesktop = width >= 900;
@@ -55,25 +56,19 @@ export default function LoginScreen() {
     try {
       setLoading(true);
 
-      const user = await loginUser({
-        email: email.trim(),
-        password,
-        });
+      const session = await loginUser({
+  email: email.trim(),
+  password,
+});
 
-    await saveToken(user.token);
+await signIn(session);
 
-    router.replace('/dashboard');
+if (session.user.userType === 'PARENT') {
+  router.replace('/parent-dashboard');
+} else {
+  router.replace('/child-dashboard');
+}
 
-      console.log(
-        'Logged in successfully:',
-        user
-      );
-
-      /*
-       * Next we will securely store the JWT
-       * and decide where to send the user
-       * based on their account/family state.
-       */
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);

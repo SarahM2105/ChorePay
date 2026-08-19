@@ -7,10 +7,8 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import {
-  registerUser,
-  UserRole,
-} from '../services/auth.service';
+import { registerUser } from '../services/auth.service';
+import { UserRole } from '../types/auth';
 
 import { commonStyles } from '../styles/common.styles';
 import { registerDetailsStyles } from '../styles/screens/register-details.styles';

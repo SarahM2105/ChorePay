@@ -1,6 +1,9 @@
 import { API_URL } from '../config/api';
 
-export type UserRole = 'PARENT' | 'CHILD';
+import {
+  AuthSession,
+  UserRole,
+} from '../types/auth';
 
 export type RegisterRequest = {
   name: string;
@@ -14,7 +17,7 @@ export type LoginRequest = {
   password: string;
 };
 
-export type LoginResponse = {
+type LoginApiResponse = {
   id: string;
   name: string;
   email: string;
@@ -28,8 +31,6 @@ async function getErrorMessage(
 ) {
   try {
     const data = await response.json();
-
-    console.log('Backend error:', data);
 
     return (
       data.message ??
@@ -71,7 +72,7 @@ export async function registerUser(
 
 export async function loginUser(
   request: LoginRequest
-): Promise<LoginResponse> {
+): Promise<AuthSession> {
   const response = await fetch(
     `${API_URL}/api/auth/login`,
     {
@@ -94,5 +95,17 @@ export async function loginUser(
     throw new Error(message);
   }
 
-  return response.json();
+  const data: LoginApiResponse =
+    await response.json();
+
+  return {
+    token: data.token,
+
+    user: {
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      userType: data.userType,
+    },
+  };
 }
