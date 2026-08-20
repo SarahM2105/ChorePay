@@ -22,6 +22,7 @@ function RootNavigator() {
         headerShown: false,
       }}
     >
+      {/* Parent-only screens */}
       <Stack.Protected
         guard={
           isAuthenticated &&
@@ -29,8 +30,10 @@ function RootNavigator() {
         }
       >
         <Stack.Screen name="parent-dashboard" />
+        <Stack.Screen name="create-family" />
       </Stack.Protected>
 
+      {/* Child-only screens */}
       <Stack.Protected
         guard={
           isAuthenticated &&
@@ -38,6 +41,7 @@ function RootNavigator() {
         }
       >
         <Stack.Screen name="child-dashboard" />
+        <Stack.Screen name="join-family" />
       </Stack.Protected>
     </Stack>
   );
