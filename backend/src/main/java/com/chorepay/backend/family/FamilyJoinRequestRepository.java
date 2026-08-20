@@ -21,4 +21,8 @@ public interface FamilyJoinRequestRepository
             FamilyJoinRequestStatus status
     );
 
+    Optional<FamilyJoinRequest>
+    findFirstByRequestedByUserOrderByRequestedAtDesc(
+            User requestedByUser
+    );
 }

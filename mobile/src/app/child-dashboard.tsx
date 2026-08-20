@@ -18,8 +18,11 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 import {
+  cancelJoinRequest,
   Family,
   getMyFamily,
+  getMyLatestJoinRequest,
+  JoinRequest,
 } from '../services/family.service';
 
 import { commonStyles } from '../styles/common.styles';
@@ -39,44 +42,97 @@ export default function ChildDashboardScreen() {
   const [family, setFamily] =
     useState<Family | null>(null);
 
+  const [joinRequest, setJoinRequest] =
+    useState<JoinRequest | null>(null);
+
   const [loadingFamily, setLoadingFamily] =
     useState(true);
 
   const [familyError, setFamilyError] =
     useState('');
 
- const loadFamily = useCallback(async () => {
-  if (!token) {
+    const [cancellingRequest, setCancellingRequest] =
+  useState(false);
+
+  const loadFamilyState =
+    useCallback(async () => {
+      if (!token) {
+        return;
+      }
+
+      try {
+        setLoadingFamily(true);
+        setFamilyError('');
+
+        const familyResult =
+          await getMyFamily(token);
+
+        setFamily(familyResult);
+
+        /*
+         * If they already belong to a family,
+         * their previous join request no longer
+         * matters to the dashboard.
+         */
+        if (familyResult) {
+          setJoinRequest(null);
+          return;
+        }
+
+        const requestResult =
+          await getMyLatestJoinRequest(token);
+
+        setJoinRequest(requestResult);
+      } catch (err) {
+        if (err instanceof Error) {
+          setFamilyError(err.message);
+        } else {
+          setFamilyError(
+            'Could not load your family.'
+          );
+        }
+      } finally {
+        setLoadingFamily(false);
+      }
+    }, [token]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadFamilyState();
+    }, [loadFamilyState])
+  );
+
+  const handleCancelRequest = async () => {
+  if (
+    !token ||
+    !joinRequest ||
+    joinRequest.status !== 'PENDING'
+  ) {
     return;
   }
 
   try {
-    setLoadingFamily(true);
+    setCancellingRequest(true);
     setFamilyError('');
 
-    const result =
-      await getMyFamily(token);
+    await cancelJoinRequest(
+      joinRequest.requestId,
+      token
+    );
 
-    setFamily(result);
+    await loadFamilyState();
   } catch (err) {
     if (err instanceof Error) {
       setFamilyError(err.message);
     } else {
       setFamilyError(
-        'Could not load your family.'
+        'Could not cancel your request.'
       );
     }
   } finally {
-    setLoadingFamily(false);
+    setCancellingRequest(false);
   }
-}, [token]);
-
-useFocusEffect(
-  useCallback(() => {
-    loadFamily();
-  }, [loadFamily])
-);
-
+};
 
   const handleLogout = async () => {
     await signOut();
@@ -84,10 +140,16 @@ useFocusEffect(
     router.replace('/login');
   };
 
+  const canJoinFamily =
+    !joinRequest ||
+    joinRequest.status === 'REJECTED' ||
+    joinRequest.status === 'CANCELLED';
+
   return (
     <View style={dashboardStyles.screen}>
       <View style={dashboardStyles.page}>
-        {/* Top bar */}
+
+        {/* Top navigation */}
         <View style={dashboardStyles.topBar}>
           <Text style={dashboardStyles.logo}>
             ChorePay
@@ -103,11 +165,13 @@ useFocusEffect(
           </Pressable>
         </View>
 
-        {/* Welcome section */}
+        {/* Welcome */}
         <View style={dashboardStyles.header}>
           <View style={dashboardStyles.roleBadge}>
             <Text
-              style={dashboardStyles.roleBadgeText}
+              style={
+                dashboardStyles.roleBadgeText
+              }
             >
               Child
             </Text>
@@ -123,16 +187,19 @@ useFocusEffect(
           </Text>
         </View>
 
-        {/* Family section */}
+        {/* Family */}
         <View
           style={[
             dashboardStyles.familyCard,
+
             isDesktop &&
               dashboardStyles.familyCardDesktop,
           ]}
         >
           {loadingFamily ? (
-            <Text style={dashboardStyles.loadingText}>
+            <Text
+              style={dashboardStyles.loadingText}
+            >
               Loading your family...
             </Text>
           ) : familyError ? (
@@ -141,48 +208,200 @@ useFocusEffect(
             </Text>
           ) : family ? (
             <>
-              <View style={dashboardStyles.familyInfo}>
-                <Text style={dashboardStyles.sectionLabel}>
+              <View
+                style={dashboardStyles.familyInfo}
+              >
+                <Text
+                  style={
+                    dashboardStyles.sectionLabel
+                  }
+                >
                   YOUR FAMILY
                 </Text>
 
-                <Text style={dashboardStyles.familyName}>
+                <Text
+                  style={
+                    dashboardStyles.familyName
+                  }
+                >
                   {family.name}
                 </Text>
 
-                <Text style={dashboardStyles.cardText}>
+                <Text
+                  style={dashboardStyles.cardText}
+                >
                   You're part of this family and
                   ready to receive chores and earn
                   rewards.
                 </Text>
               </View>
 
-              <View style={dashboardStyles.joinCodeSection}>
+              <View
+                style={
+                  dashboardStyles.joinCodeSection
+                }
+              >
                 <Text
-                  style={dashboardStyles.joinCodeLabel}
+                  style={
+                    dashboardStyles.joinCodeLabel
+                  }
                 >
                   Family join code
                 </Text>
 
-                <View style={dashboardStyles.joinCodeBox}>
-                  <Text style={dashboardStyles.joinCode}>
+                <View
+                  style={
+                    dashboardStyles.joinCodeBox
+                  }
+                >
+                  <Text
+                    style={
+                      dashboardStyles.joinCode
+                    }
+                  >
                     {family.joinCode}
                   </Text>
                 </View>
               </View>
             </>
-          ) : (
+          ) : joinRequest?.status ===
+            'PENDING' ? (
             <>
-              <View style={dashboardStyles.familyInfo}>
-                <Text style={dashboardStyles.sectionLabel}>
+              <View
+                style={dashboardStyles.familyInfo}
+              >
+                <Text
+                  style={
+                    dashboardStyles.sectionLabel
+                  }
+                >
                   YOUR FAMILY
                 </Text>
 
-                <Text style={dashboardStyles.familyName}>
+                <Text
+                  style={
+                    dashboardStyles.familyName
+                  }
+                >
+                  Request sent
+                </Text>
+
+                <Text
+                  style={dashboardStyles.cardText}
+                >
+                  Your request has been sent.
+                  A parent needs to approve it
+                  before you can join the family.
+                </Text>
+              </View>
+
+              <View style={dashboardStyles.statusBox}>
+  <Text style={dashboardStyles.statusLabel}>
+    STATUS
+  </Text>
+
+  <Text style={dashboardStyles.statusTitle}>
+    Waiting for approval
+  </Text>
+
+  <Text style={dashboardStyles.statusText}>
+    A parent needs to approve your request.
+  </Text>
+
+  <Pressable
+    disabled={cancellingRequest}
+    style={[
+      commonStyles.secondaryButton,
+      dashboardStyles.cancelRequestButton,
+
+      cancellingRequest &&
+        commonStyles.loadingButton,
+    ]}
+    onPress={handleCancelRequest}
+  >
+    <Text
+      style={commonStyles.secondaryButtonText}
+    >
+      {cancellingRequest
+        ? 'Cancelling...'
+        : 'Cancel request'}
+    </Text>
+  </Pressable>
+</View>
+            </>
+          ) : joinRequest?.status ===
+            'REJECTED' ? (
+            <>
+              <View
+                style={dashboardStyles.familyInfo}
+              >
+                <Text
+                  style={
+                    dashboardStyles.sectionLabel
+                  }
+                >
+                  YOUR FAMILY
+                </Text>
+
+                <Text
+                  style={
+                    dashboardStyles.familyName
+                  }
+                >
+                  Request declined
+                </Text>
+
+                <Text
+                  style={dashboardStyles.cardText}
+                >
+                  Your previous request wasn't
+                  approved. You can enter another
+                  family code and try again.
+                </Text>
+              </View>
+
+              <Pressable
+                style={[
+                  commonStyles.primaryButton,
+                  dashboardStyles.createFamilyButton,
+                ]}
+                onPress={() =>
+                  router.push('/join-family')
+                }
+              >
+                <Text
+                  style={
+                    commonStyles.primaryButtonText
+                  }
+                >
+                  Try another code
+                </Text>
+              </Pressable>
+            </>
+          ) : canJoinFamily ? (
+            <>
+              <View
+                style={dashboardStyles.familyInfo}
+              >
+                <Text
+                  style={
+                    dashboardStyles.sectionLabel
+                  }
+                >
+                  YOUR FAMILY
+                </Text>
+
+                <Text
+                  style={
+                    dashboardStyles.familyName
+                  }
+                >
                   Join your family
                 </Text>
 
-                <Text style={dashboardStyles.cardText}>
+                <Text
+                  style={dashboardStyles.cardText}
+                >
                   Enter the join code given to you
                   by your parent to request access
                   to your family.
@@ -207,18 +426,26 @@ useFocusEffect(
                 </Text>
               </Pressable>
             </>
-          )}
+          ) : null}
         </View>
 
-        {/* Chores section */}
+        {/* Chores only show after joining */}
         {family && (
-          <View style={dashboardStyles.requestsSection}>
-            <Text style={dashboardStyles.sectionTitle}>
+          <View
+            style={dashboardStyles.requestsSection}
+          >
+            <Text
+              style={dashboardStyles.sectionTitle}
+            >
               Your chores
             </Text>
 
-            <View style={dashboardStyles.requestCard}>
-              <Text style={dashboardStyles.cardText}>
+            <View
+              style={dashboardStyles.requestCard}
+            >
+              <Text
+                style={dashboardStyles.cardText}
+              >
                 You don't have any chores to show
                 yet.
               </Text>

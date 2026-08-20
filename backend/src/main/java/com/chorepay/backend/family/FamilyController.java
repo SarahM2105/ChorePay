@@ -75,6 +75,18 @@ public ResponseEntity<java.util.List<JoinRequestResponse>> getJoinRequests(
                 .body(response);
     }
 
+@GetMapping("/join-request/me")
+public ResponseEntity<JoinRequestResponse> getMyLatestJoinRequest(
+        @AuthenticationPrincipal User user
+) {
+    return familyService
+            .getMyLatestJoinRequest(user)
+            .map(ResponseEntity::ok)
+            .orElseGet(() ->
+                    ResponseEntity.noContent().build()
+            );
+}
+
     @PostMapping("/join")
     public ResponseEntity<Void> requestToJoinFamily(
             @AuthenticationPrincipal User user,

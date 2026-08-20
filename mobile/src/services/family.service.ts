@@ -150,6 +150,60 @@ export async function getJoinRequests(
   return response.json();
 }
 
+export async function getMyLatestJoinRequest(
+  token: string
+): Promise<JoinRequest | null> {
+  const response = await fetch(
+    `${API_URL}/api/families/join-request/me`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  // No previous join request
+  if (response.status === 204) {
+    return null;
+  }
+
+  if (!response.ok) {
+    const message = await getErrorMessage(
+      response,
+      'Could not load your join request.'
+    );
+
+    throw new Error(message);
+  }
+
+  return response.json();
+}
+
+export async function cancelJoinRequest(
+  requestId: string,
+  token: string
+): Promise<void> {
+  const response = await fetch(
+    `${API_URL}/api/families/join-requests/${requestId}/cancel`,
+    {
+      method: 'POST',
+
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const message = await getErrorMessage(
+      response,
+      'Could not cancel join request.'
+    );
+
+    throw new Error(message);
+  }
+}
+
 export async function approveJoinRequest(
   requestId: string,
   token: string

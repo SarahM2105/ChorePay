@@ -8,6 +8,7 @@ import com.chorepay.backend.user.UserType;
 import java.util.UUID;
 import com.chorepay.backend.exception.ForbiddenException;
 import com.chorepay.backend.exception.NotFoundException;
+import java.util.Optional;
 
 import java.security.SecureRandom;
 
@@ -280,6 +281,21 @@ public java.util.List<JoinRequestResponse> getPendingJoinRequests(
                     request.getRequestedAt()
             ))
             .toList();
+}
+
+public Optional<JoinRequestResponse> getMyLatestJoinRequest(
+        User user
+) {
+    return familyJoinRequestRepository
+            .findFirstByRequestedByUserOrderByRequestedAtDesc(user)
+            .map(request -> new JoinRequestResponse(
+                    request.getId(),
+                    request.getRequestedByUser().getId(),
+                    request.getRequestedByUser().getName(),
+                    request.getRequestedRole(),
+                    request.getStatus(),
+                    request.getRequestedAt()
+            ));
 }
 
 @Transactional

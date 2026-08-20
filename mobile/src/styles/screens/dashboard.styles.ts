@@ -272,4 +272,50 @@ memberRoleText: {
   fontSize: 12,
   fontWeight: '800',
 },
+
+statusBox: {
+  backgroundColor: colors.primaryLight,
+  borderRadius: 16,
+  padding: 18,
+  minWidth: 220,
+},
+
+statusLabel: {
+  color: colors.primary,
+  fontSize: 12,
+  fontWeight: '800',
+  letterSpacing: 1,
+  marginBottom: 6,
+},
+
+statusTitle: {
+  fontSize: 17,
+  fontWeight: '800',
+  marginBottom: 5,
+},
+
+statusText: {
+  fontSize: 14,
+  lineHeight: 21,
+},
+
+declinedBox: {
+  backgroundColor: colors.white,
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 16,
+  padding: 18,
+  minWidth: 220,
+},
+
+declinedTitle: {
+  fontSize: 17,
+  fontWeight: '800',
+  marginBottom: 5,
+},
+
+cancelRequestButton: {
+  marginTop: 16,
+},
+
 });
