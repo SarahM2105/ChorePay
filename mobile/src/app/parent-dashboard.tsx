@@ -1,4 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { AppBottomNav } from '../components/AppBottomNav';
+
 import {
   useEffect,
   useState,
@@ -6,6 +9,7 @@ import {
 
 import {
   Pressable,
+  ScrollView,
   Text,
   useWindowDimensions,
   View,
@@ -25,7 +29,8 @@ import {
 } from '../services/family.service';
 
 import { commonStyles } from '../styles/common.styles';
-import { dashboardStyles } from '../styles/screens/dashboard.styles';
+
+import { parentDashboardStyles as styles } from '../styles/screens/parent-dashboard.styles';
 
 export default function ParentDashboardScreen() {
   const { width } = useWindowDimensions();
@@ -47,17 +52,17 @@ export default function ParentDashboardScreen() {
   const [familyError, setFamilyError] =
     useState('');
 
+  const [familyMembers, setFamilyMembers] =
+    useState<FamilyMember[]>([]);
+
+  const [loadingMembers, setLoadingMembers] =
+    useState(true);
+
+  const [membersError, setMembersError] =
+    useState('');
+
   const [joinRequests, setJoinRequests] =
     useState<JoinRequest[]>([]);
-
-    const [familyMembers, setFamilyMembers] =
-  useState<FamilyMember[]>([]);
-
-const [loadingMembers, setLoadingMembers] =
-  useState(true);
-
-const [membersError, setMembersError] =
-  useState('');
 
   const [loadingRequests, setLoadingRequests] =
     useState(true);
@@ -69,6 +74,15 @@ const [membersError, setMembersError] =
     processingRequestId,
     setProcessingRequestId,
   ] = useState<string | null>(null);
+
+  const hour = new Date().getHours();
+
+  const greeting =
+    hour < 12
+      ? 'Good morning'
+      : hour < 18
+        ? 'Good afternoon'
+        : 'Good evening';
 
   useEffect(() => {
     const loadFamily = async () => {
@@ -101,38 +115,30 @@ const [membersError, setMembersError] =
   }, [token]);
 
   const loadFamilyMembers = async () => {
-  if (!token) {
-    return;
-  }
-
-  try {
-    setLoadingMembers(true);
-    setMembersError('');
-
-    const members =
-      await getFamilyMembers(token);
-
-    setFamilyMembers(members);
-  } catch (err) {
-    if (err instanceof Error) {
-      setMembersError(err.message);
-    } else {
-      setMembersError(
-        'Could not load family members.'
-      );
+    if (!token) {
+      return;
     }
-  } finally {
-    setLoadingMembers(false);
-  }
-};
 
-useEffect(() => {
-  if (family) {
-    loadFamilyMembers();
-  } else {
-    setLoadingMembers(false);
-  }
-}, [family, token]);
+    try {
+      setLoadingMembers(true);
+      setMembersError('');
+
+      const members =
+        await getFamilyMembers(token);
+
+      setFamilyMembers(members);
+    } catch (err) {
+      if (err instanceof Error) {
+        setMembersError(err.message);
+      } else {
+        setMembersError(
+          'Could not load family members.'
+        );
+      }
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
 
   const loadJoinRequests = async () => {
     if (!token) {
@@ -161,8 +167,15 @@ useEffect(() => {
   };
 
   useEffect(() => {
+    if (!family) {
+      setLoadingMembers(false);
+      setLoadingRequests(false);
+      return;
+    }
+
+    loadFamilyMembers();
     loadJoinRequests();
-  }, [token]);
+  }, [family, token]);
 
   const handleLogout = async () => {
     await signOut();
@@ -182,16 +195,14 @@ useEffect(() => {
       setRequestError('');
 
       await approveJoinRequest(
-  requestId,
-  token
-);
+        requestId,
+        token
+      );
 
-await Promise.all([
-  loadJoinRequests(),
-  loadFamilyMembers(),
-]);
-
-
+      await Promise.all([
+        loadJoinRequests(),
+        loadFamilyMembers(),
+      ]);
     } catch (err) {
       if (err instanceof Error) {
         setRequestError(err.message);
@@ -235,380 +246,727 @@ await Promise.all([
     }
   };
 
-  return (
-    <View style={dashboardStyles.screen}>
-      <View style={dashboardStyles.page}>
+  if (loadingFamily) {
+    return (
+      <View
+        style={[
+          styles.screen,
+          {
+            alignItems: 'center',
+            justifyContent: 'center',
+          },
+        ]}
+      >
+        <Text>
+          Loading your dashboard...
+        </Text>
+      </View>
+    );
+  }
 
-        {/* Top navigation */}
-        <View style={dashboardStyles.topBar}>
-          <Text style={dashboardStyles.logo}>
-            ChorePay
-          </Text>
+return (
+  <View style={styles.screen}>
+    <ScrollView
+      style={{ flex: 1 }}
+      contentContainerStyle={
+        styles.scrollContent
+      }
+      showsVerticalScrollIndicator={false}
+    >
+      <View style={styles.page}>
 
-          <Pressable
-            style={dashboardStyles.logoutButton}
-            onPress={handleLogout}
-          >
-            <Text style={dashboardStyles.logoutText}>
-              Log out
+        {/* TOP BAR */}
+
+        <View style={styles.topBar}>
+          <View style={styles.brand}>
+            <Text style={styles.brandChore}>
+              CHORE
             </Text>
-          </Pressable>
-        </View>
 
-        {/* Welcome */}
-        <View style={dashboardStyles.header}>
-          <View style={dashboardStyles.roleBadge}>
-            <Text
-              style={
-                dashboardStyles.roleBadgeText
-              }
-            >
-              Parent
+            <Text style={styles.brandPay}>
+              PAY
             </Text>
           </View>
 
-          <Text style={dashboardStyles.welcome}>
-            Welcome back, {user?.name} 👋
-          </Text>
-
-          <Text style={dashboardStyles.subtitle}>
-            Manage your family, chores and rewards
-            from one place.
-          </Text>
-        </View>
-
-        {/* Family card */}
-        <View
-          style={[
-            dashboardStyles.familyCard,
-            isDesktop &&
-              dashboardStyles.familyCardDesktop,
-          ]}
-        >
-          {loadingFamily ? (
-            <Text
-              style={dashboardStyles.loadingText}
+          <View style={styles.topActions}>
+            <View
+              style={styles.notificationButton}
             >
-              Loading your family...
-            </Text>
-          ) : familyError ? (
-            <Text style={commonStyles.errorText}>
-              {familyError}
-            </Text>
-          ) : family ? (
-            <>
-              <View
-                style={dashboardStyles.familyInfo}
-              >
-                <Text
-                  style={
-                    dashboardStyles.sectionLabel
-                  }
-                >
-                  YOUR FAMILY
-                </Text>
+              <Ionicons
+                name="notifications-outline"
+                size={20}
+                color="#17152B"
+              />
 
-                <Text
-                  style={
-                    dashboardStyles.familyName
-                  }
-                >
-                  {family.name}
-                </Text>
-
-                <Text
-                  style={dashboardStyles.cardText}
-                >
-                  Share the join code with family
-                  members so they can request to
-                  join.
-                </Text>
-              </View>
-
-              <View
-                style={
-                  dashboardStyles.joinCodeSection
-                }
-              >
-                <Text
-                  style={
-                    dashboardStyles.joinCodeLabel
-                  }
-                >
-                  Family join code
-                </Text>
-
+              {joinRequests.length > 0 && (
                 <View
                   style={
-                    dashboardStyles.joinCodeBox
+                    styles.notificationBadge
                   }
                 >
                   <Text
                     style={
-                      dashboardStyles.joinCode
+                      styles.notificationBadgeText
                     }
                   >
-                    {family.joinCode}
+                    {joinRequests.length}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <Pressable
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
+              <Ionicons
+                name="log-out-outline"
+                size={17}
+                color="#6C5CE7"
+              />
+
+              {isDesktop && (
+                <Text style={styles.logoutText}>
+                  Log out
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        </View>
+
+        {/* GREETING */}
+
+        <View style={styles.header}>
+  <Text style={styles.welcome}>
+    {greeting}, {user?.name}! 👋
+  </Text>
+
+          <Text style={styles.subtitle}>
+            Here's what's happening with your
+            family today.
+          </Text>
+        </View>
+
+        {familyError ? (
+          <Text style={commonStyles.errorText}>
+            {familyError}
+          </Text>
+        ) : null}
+
+        {!family ? (
+          /* NO FAMILY YET */
+
+          <View style={styles.onboardingCard}>
+            <View style={styles.onboardingIcon}>
+              <Ionicons
+                name="people-outline"
+                size={34}
+                color="#6C5CE7"
+              />
+            </View>
+
+            <Text style={styles.onboardingTitle}>
+              Create your family
+            </Text>
+
+            <Text style={styles.onboardingText}>
+              Start your ChorePay family to assign
+              chores, invite children and manage
+              rewards from one place.
+            </Text>
+
+            <Pressable
+              style={styles.createChoreButton}
+              onPress={() =>
+                router.push('/create-family')
+              }
+            >
+              <Ionicons
+                name="add-circle-outline"
+                size={20}
+                color="#FFFFFF"
+              />
+
+              <Text
+                style={
+                  styles.createChoreButtonText
+                }
+              >
+                Create family
+              </Text>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            {/* STATS */}
+
+            <View
+              style={[
+                styles.statsGrid,
+                isDesktop &&
+                  styles.statsGridDesktop,
+              ]}
+            >
+              <View style={styles.statCard}>
+                <View
+                  style={[
+                    styles.statIcon,
+                    styles.tealIcon,
+                  ]}
+                >
+                  <Ionicons
+                    name="people-outline"
+                    size={24}
+                    color="#4B988E"
+                  />
+                </View>
+
+                <View>
+                  <Text style={styles.statNumber}>
+                    {loadingMembers
+                      ? '—'
+                      : familyMembers.length}
+                  </Text>
+
+                  <Text style={styles.statLabel}>
+                    Family members
                   </Text>
                 </View>
               </View>
-            </>
-          ) : (
-            <>
-              <View
-                style={dashboardStyles.familyInfo}
-              >
-                <Text
-                  style={
-                    dashboardStyles.sectionLabel
-                  }
-                >
-                  YOUR FAMILY
-                </Text>
 
-                <Text
-                  style={
-                    dashboardStyles.familyName
-                  }
+              <View style={styles.statCard}>
+                <View
+                  style={[
+                    styles.statIcon,
+                    styles.purpleIcon,
+                  ]}
                 >
-                  Get started
-                </Text>
+                  <Ionicons
+                    name="clipboard-outline"
+                    size={24}
+                    color="#6C5CE7"
+                  />
+                </View>
 
-                <Text
-                  style={dashboardStyles.cardText}
-                >
-                  Create a family to start
-                  organising chores and rewards.
-                </Text>
+                <View>
+                  <Text style={styles.statNumber}>
+                    0
+                  </Text>
+
+                  <Text style={styles.statLabel}>
+                    Active chores
+                  </Text>
+                </View>
               </View>
 
-              <Pressable
-                style={[
-                  commonStyles.primaryButton,
-                  dashboardStyles.createFamilyButton,
-                ]}
-                onPress={() =>
-                  router.push('/create-family')
-                }
-              >
-                <Text
-                  style={
-                    commonStyles.primaryButtonText
-                  }
+              <View style={styles.statCard}>
+                <View
+                  style={[
+                    styles.statIcon,
+                    styles.orangeIcon,
+                  ]}
                 >
-                  Create a family
-                </Text>
-              </Pressable>
-            </>
-          )}
-        </View>
+                  <Ionicons
+                    name="time-outline"
+                    size={24}
+                    color="#D99419"
+                  />
+                </View>
 
-          {/* Family members */}
-{family && (
-  <View style={dashboardStyles.membersSection}>
-    <Text style={dashboardStyles.sectionTitle}>
-      Family members
-    </Text>
+                <View>
+                  <Text style={styles.statNumber}>
+                    {loadingRequests
+                      ? '—'
+                      : joinRequests.length}
+                  </Text>
 
-    {membersError ? (
-      <Text style={commonStyles.errorText}>
-        {membersError}
-      </Text>
-    ) : loadingMembers ? (
-      <Text style={dashboardStyles.emptyText}>
-        Loading family members...
-      </Text>
-    ) : familyMembers.length === 0 ? (
-      <Text style={dashboardStyles.emptyText}>
-        No family members to show.
-      </Text>
-    ) : (
-      <View style={dashboardStyles.membersGrid}>
-        {familyMembers.map((member) => (
-          <View
-            key={member.userId}
-            style={dashboardStyles.memberCard}
-          >
-            <View style={dashboardStyles.memberInfo}>
-              <Text style={dashboardStyles.memberName}>
-                {member.name}
-              </Text>
-
-              <Text style={dashboardStyles.memberJoined}>
-                Joined{' '}
-                {new Date(
-                  member.joinedAt
-                ).toLocaleDateString()}
-              </Text>
+                  <Text style={styles.statLabel}>
+                    Need approval
+                  </Text>
+                </View>
+              </View>
             </View>
+
+            {/* TODAY + QUICK ACTIONS */}
 
             <View
-              style={
-                dashboardStyles.memberRoleBadge
-              }
+              style={[
+                styles.mainGrid,
+                isDesktop &&
+                  styles.mainGridDesktop,
+              ]}
             >
-              <Text
-                style={
-                  dashboardStyles.memberRoleText
-                }
-              >
-                {member.role === 'OWNER'
-                  ? 'Owner'
-                  : member.role === 'PARENT'
-                    ? 'Parent'
-                    : 'Child'}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </View>
-    )}
-  </View>
-)}
-        {/* Join requests */}
-        {family && (
-          <View
-            style={dashboardStyles.requestsSection}
-          >
-            <Text
-              style={dashboardStyles.sectionTitle}
-            >
-              Join requests
-            </Text>
+              <View style={styles.choresCard}>
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>
+                    Today's chores
+                  </Text>
 
-            {requestError ? (
-              <Text
-                style={[
-                  commonStyles.errorText,
-                  dashboardStyles.requestError,
-                ]}
-              >
-                {requestError}
-              </Text>
-            ) : null}
-
-            {loadingRequests ? (
-              <Text
-                style={dashboardStyles.emptyText}
-              >
-                Loading requests...
-              </Text>
-            ) : joinRequests.length === 0 ? (
-              <Text
-                style={dashboardStyles.emptyText}
-              >
-                No pending join requests.
-              </Text>
-            ) : (
-              joinRequests.map((request) => {
-                const isProcessing =
-                  processingRequestId ===
-                  request.requestId;
-
-                return (
                   <View
-                    key={request.requestId}
-                    style={
-                      dashboardStyles.requestCard
-                    }
+                    style={styles.sectionCount}
                   >
-                    <View
+                    <Text
                       style={
-                        dashboardStyles.requestTop
+                        styles.sectionCountText
                       }
                     >
-                      <Text
-                        style={
-                          dashboardStyles.requestName
-                        }
-                      >
-                        {request.name}
-                      </Text>
+                      0
+                    </Text>
+                  </View>
+                </View>
 
-                      <Text
-                        style={
-                          dashboardStyles.requestRole
-                        }
-                      >
-                        {request.requestedRole ===
-                        'CHILD'
-                          ? 'Child'
-                          : 'Parent'}
-                      </Text>
-                    </View>
+                <View style={styles.emptyChores}>
+                  <View style={styles.emptyIcon}>
+                    <Ionicons
+                      name="sparkles-outline"
+                      size={26}
+                      color="#6C5CE7"
+                    />
+                  </View>
+
+                  <Text style={styles.emptyTitle}>
+                    No chores yet
+                  </Text>
+
+                  <Text style={styles.emptyText}>
+                    Create your first chore and
+                    assign it to someone in your
+                    family.
+                  </Text>
+                </View>
+
+                <Pressable
+                  style={
+                    styles.createChoreButton
+                  }
+                  onPress={() =>
+                    router.push('/create-chore')
+                  }
+                >
+                  <Ionicons
+                    name="add"
+                    size={20}
+                    color="#FFFFFF"
+                  />
+
+                  <Text
+                    style={
+                      styles.createChoreButtonText
+                    }
+                  >
+                    Create chore
+                  </Text>
+                </Pressable>
+              </View>
+
+              <View
+                style={styles.quickActionsCard}
+              >
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>
+                    Quick actions
+                  </Text>
+                </View>
+
+                <Pressable
+                  style={[
+                    styles.quickAction,
+                    styles.quickActionPrimary,
+                  ]}
+                  onPress={() =>
+                    router.push('/create-chore')
+                  }
+                >
+                  <View
+                    style={
+                      styles.quickActionIcon
+                    }
+                  >
+                    <Ionicons
+                      name="add"
+                      size={21}
+                      color="#6C5CE7"
+                    />
+                  </View>
+
+                  <View
+                    style={
+                      styles.quickActionTextContainer
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.quickActionTitle
+                      }
+                    >
+                      Create chore
+                    </Text>
 
                     <Text
                       style={
-                        dashboardStyles.requestDate
+                        styles.quickActionSubtitle
                       }
                     >
-                      Requested{' '}
-                      {new Date(
-                        request.requestedAt
-                      ).toLocaleDateString()}
+                      Assign something new
+                    </Text>
+                  </View>
+
+                  <Ionicons
+                    name="chevron-forward"
+                    size={18}
+                    color="#6C5CE7"
+                  />
+                </Pressable>
+
+                <View style={styles.quickAction}>
+                  <View
+                    style={
+                      styles.quickActionIcon
+                    }
+                  >
+                    <Ionicons
+                      name="gift-outline"
+                      size={20}
+                      color="#D99419"
+                    />
+                  </View>
+
+                  <View
+                    style={
+                      styles.quickActionTextContainer
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.quickActionTitle
+                      }
+                    >
+                      Add reward
                     </Text>
 
-                    <View
+                    <Text
                       style={
-                        dashboardStyles.requestActions
+                        styles.quickActionSubtitle
                       }
                     >
-                      <Pressable
-                        disabled={isProcessing}
-                        style={[
-                          commonStyles.primaryButton,
-                          dashboardStyles.requestButton,
-
-                          isProcessing &&
-                            commonStyles.loadingButton,
-                        ]}
-                        onPress={() =>
-                          handleApprove(
-                            request.requestId
-                          )
-                        }
-                      >
-                        <Text
-                          style={
-                            commonStyles.primaryButtonText
-                          }
-                        >
-                          {isProcessing
-                            ? 'Processing...'
-                            : 'Approve'}
-                        </Text>
-                      </Pressable>
-
-                      <Pressable
-                        disabled={isProcessing}
-                        style={[
-                          dashboardStyles.rejectButton,
-
-                          isProcessing &&
-                            commonStyles.loadingButton,
-                        ]}
-                        onPress={() =>
-                          handleReject(
-                            request.requestId
-                          )
-                        }
-                      >
-                        <Text
-                          style={
-                            dashboardStyles.rejectButtonText
-                          }
-                        >
-                          Reject
-                        </Text>
-                      </Pressable>
-                    </View>
+                      Coming soon
+                    </Text>
                   </View>
-                );
-              })
-            )}
-          </View>
+                </View>
+
+                <View style={styles.quickAction}>
+                  <View
+                    style={
+                      styles.quickActionIcon
+                    }
+                  >
+                    <Ionicons
+                      name="key-outline"
+                      size={20}
+                      color="#4B988E"
+                    />
+                  </View>
+
+                  <View
+                    style={
+                      styles.quickActionTextContainer
+                    }
+                  >
+                    <Text
+                      style={
+                        styles.quickActionTitle
+                      }
+                    >
+                      Family code
+                    </Text>
+
+                    <Text
+                      style={
+                        styles.quickActionSubtitle
+                      }
+                    >
+                      {family.joinCode}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* FAMILY + JOIN REQUESTS */}
+
+            <View
+              style={[
+                styles.lowerGrid,
+                isDesktop &&
+                  styles.lowerGridDesktop,
+              ]}
+            >
+              <View style={styles.familyPanel}>
+                <View style={styles.familyHeader}>
+                  <View>
+                    <Text style={styles.sectionTitle}>
+                      Family
+                    </Text>
+
+                    <Text style={styles.familyName}>
+                      {family.name}
+                    </Text>
+
+                    <Text style={styles.familyHint}>
+                      {familyMembers.length}{' '}
+                      {familyMembers.length === 1
+                        ? 'member'
+                        : 'members'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.joinCodeBox}>
+                    <Text
+                      style={
+                        styles.joinCodeLabel
+                      }
+                    >
+                      Join code
+                    </Text>
+
+                    <Text style={styles.joinCode}>
+                      {family.joinCode}
+                    </Text>
+                  </View>
+                </View>
+
+                {membersError ? (
+                  <Text style={styles.errorText}>
+                    {membersError}
+                  </Text>
+                ) : loadingMembers ? (
+                  <Text style={styles.emptyText}>
+                    Loading family members...
+                  </Text>
+                ) : (
+                  familyMembers.map((member) => (
+                    <View
+                      key={member.userId}
+                      style={styles.memberRow}
+                    >
+                      <View
+                        style={
+                          styles.memberAvatar
+                        }
+                      >
+                        <Ionicons
+                          name="person-outline"
+                          size={18}
+                          color="#4B988E"
+                        />
+                      </View>
+
+                      <View
+                        style={styles.memberInfo}
+                      >
+                        <Text
+                          style={styles.memberName}
+                        >
+                          {member.name}
+                        </Text>
+
+                        <Text
+                          style={
+                            styles.memberJoined
+                          }
+                        >
+                          Joined{' '}
+                          {new Date(
+                            member.joinedAt
+                          ).toLocaleDateString()}
+                        </Text>
+                      </View>
+
+                      <View
+                        style={styles.roleBadge}
+                      >
+                        <Text
+                          style={styles.roleText}
+                        >
+                          {member.role === 'OWNER'
+                            ? 'Owner'
+                            : member.role ===
+                                'PARENT'
+                              ? 'Parent'
+                              : 'Child'}
+                        </Text>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </View>
+
+              <View
+                style={styles.requestsPanel}
+              >
+                <View style={styles.sectionHeader}>
+                  <Text style={styles.sectionTitle}>
+                    Join requests
+                  </Text>
+
+                  {joinRequests.length > 0 && (
+                    <View
+                      style={styles.sectionCount}
+                    >
+                      <Text
+                        style={
+                          styles.sectionCountText
+                        }
+                      >
+                        {joinRequests.length}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {requestError ? (
+                  <Text style={styles.errorText}>
+                    {requestError}
+                  </Text>
+                ) : loadingRequests ? (
+                  <Text style={styles.emptyText}>
+                    Loading requests...
+                  </Text>
+                ) : joinRequests.length === 0 ? (
+                  <View style={styles.noRequests}>
+                    <Ionicons
+                      name="checkmark-circle-outline"
+                      size={30}
+                      color="#72B8AD"
+                    />
+
+                    <Text
+                      style={
+                        styles.noRequestsText
+                      }
+                    >
+                      No pending requests. You're
+                      all caught up!
+                    </Text>
+                  </View>
+                ) : (
+                  joinRequests.map((request) => {
+                    const isProcessing =
+                      processingRequestId ===
+                      request.requestId;
+
+                    return (
+                      <View
+                        key={request.requestId}
+                        style={styles.requestCard}
+                      >
+                        <View
+                          style={styles.requestTop}
+                        >
+                          <View
+                            style={
+                              styles.requestAvatar
+                            }
+                          >
+                            <Ionicons
+                              name="person-add-outline"
+                              size={17}
+                              color="#D99419"
+                            />
+                          </View>
+
+                          <View
+                            style={
+                              styles.requestNameContainer
+                            }
+                          >
+                            <Text
+                              style={
+                                styles.requestName
+                              }
+                            >
+                              {request.name}
+                            </Text>
+
+                            <Text
+                              style={
+                                styles.requestMeta
+                              }
+                            >
+                              {request.requestedRole ===
+                              'CHILD'
+                                ? 'Child'
+                                : 'Parent'}
+                              {' • '}
+                              {new Date(
+                                request.requestedAt
+                              ).toLocaleDateString()}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View
+                          style={
+                            styles.requestActions
+                          }
+                        >
+                          <Pressable
+                            disabled={isProcessing}
+                            style={
+                              styles.approveButton
+                            }
+                            onPress={() =>
+                              handleApprove(
+                                request.requestId
+                              )
+                            }
+                          >
+                            <Text
+                              style={
+                                styles.approveText
+                              }
+                            >
+                              {isProcessing
+                                ? 'Working...'
+                                : 'Approve'}
+                            </Text>
+                          </Pressable>
+
+                          <Pressable
+                            disabled={isProcessing}
+                            style={
+                              styles.rejectButton
+                            }
+                            onPress={() =>
+                              handleReject(
+                                request.requestId
+                              )
+                            }
+                          >
+                            <Text
+                              style={
+                                styles.rejectText
+                              }
+                            >
+                              Reject
+                            </Text>
+                          </Pressable>
+                        </View>
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            </View>
+                    </>
         )}
       </View>
-    </View>
-  );
+    </ScrollView>
+
+    <AppBottomNav
+      active="home"
+      userType="PARENT"
+    />
+  </View>
+);
 }

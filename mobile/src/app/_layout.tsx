@@ -42,6 +42,7 @@ function RootNavigator() {
       >
         <Stack.Screen name="child-dashboard" />
         <Stack.Screen name="join-family" />
+        <Stack.Screen name="create-chore" />
       </Stack.Protected>
     </Stack>
   );

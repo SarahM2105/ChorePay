@@ -4,12 +4,15 @@ import { colors } from '../colors';
 
 export const dashboardStyles = StyleSheet.create({
   screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-    alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 40,
-  },
+  flex: 1,
+  backgroundColor: colors.background,
+},
+
+scrollContent: {
+  alignItems: 'center',
+  paddingHorizontal: 24,
+  paddingVertical: 40,
+},
 
   page: {
     width: '100%',
