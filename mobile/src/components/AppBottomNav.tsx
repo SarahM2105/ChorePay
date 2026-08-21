@@ -7,7 +7,9 @@ import {
   View,
 } from 'react-native';
 
-import { bottomNavStyles as styles } from '../styles/components/bottom-nav.styles';
+import {
+  bottomNavStyles as styles,
+} from '../styles/components/bottom-nav.styles';
 
 type AppBottomNavProps = {
   active:
@@ -15,7 +17,8 @@ type AppBottomNavProps = {
     | 'chores'
     | 'shop'
     | 'progress'
-    | 'profile';
+    | 'profile'
+    | 'family';
 
   userType: 'PARENT' | 'CHILD';
 };
@@ -24,52 +27,102 @@ export function AppBottomNav({
   active,
   userType,
 }: AppBottomNavProps) {
-  const homeRoute =
-    userType === 'PARENT'
-      ? '/parent-dashboard'
-      : '/child-dashboard';
-
   const items = [
     {
       key: 'home',
       label: 'Home',
       icon: 'home-outline' as const,
       activeIcon: 'home' as const,
-      onPress: () =>
-        router.replace(homeRoute),
-    },
-    {
-      key: 'chores',
-      label: 'Chores',
-      icon: 'clipboard-outline' as const,
-      activeIcon: 'clipboard' as const,
+
       onPress: () => {
         if (userType === 'PARENT') {
-          router.push('/create-chore');
+          router.replace(
+            '/parent-dashboard'
+          );
+        } else {
+          router.replace(
+            '/child-dashboard'
+          );
         }
       },
     },
+
+    {
+      key: 'chores',
+      label: 'Chores',
+      icon:
+        'clipboard-outline' as const,
+      activeIcon:
+        'clipboard' as const,
+
+      onPress: () => {
+        /*
+         * TEMPORARY:
+         * Parent still goes directly
+         * to Create Chore.
+         *
+         * Next we'll replace this with
+         * /chores, which will show the
+         * family's chore list.
+         */
+        if (userType === 'PARENT') {
+          router.push(
+            '/chores'
+          );
+        }
+      },
+    },
+
     {
       key: 'shop',
       label: 'Shop',
       icon: 'bag-outline' as const,
       activeIcon: 'bag' as const,
-      onPress: () => {},
+
+      onPress: () => {
+        // Shop screen comes later.
+      },
     },
+
     {
       key: 'progress',
       label: 'Progress',
-      icon: 'bar-chart-outline' as const,
-      activeIcon: 'bar-chart' as const,
-      onPress: () => {},
+      icon:
+        'bar-chart-outline' as const,
+      activeIcon:
+        'bar-chart' as const,
+
+      onPress: () => {
+        // Progress screen comes later.
+      },
     },
-    {
-      key: 'profile',
-      label: 'Profile',
-      icon: 'person-outline' as const,
-      activeIcon: 'person' as const,
-      onPress: () => {},
-    },
+
+    userType === 'PARENT'
+      ? {
+          key: 'family',
+          label: 'Family',
+          icon:
+            'people-outline' as const,
+          activeIcon:
+            'people' as const,
+
+          onPress: () => {
+            router.push('/family');
+          },
+        }
+      : {
+          key: 'profile',
+          label: 'Profile',
+          icon:
+            'person-outline' as const,
+          activeIcon:
+            'person' as const,
+
+          onPress: () => {
+            // Child profile screen
+            // comes later.
+          },
+        },
   ];
 
   return (

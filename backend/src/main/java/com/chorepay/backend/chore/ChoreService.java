@@ -1665,11 +1665,21 @@ private ParentChoreAssignmentResponse toParentAssignmentResponse(
                     )
                     .toList();
 
+    ChoreTemplate template =
+            assignment.getChoreTemplate();
+
+    User createdBy =
+            template.getCreatedByUser();
+
     return new ParentChoreAssignmentResponse(
             assignment.getId(),
-            assignment.getChoreTemplate().getId(),
-            assignment.getChoreTemplate().getTitle(),
-            assignment.getChoreTemplate().getDescription(),
+            template.getId(),
+            template.getTitle(),
+            template.getDescription(),
+
+            createdBy.getId(),
+            createdBy.getName(),
+
             assignment.getDueAt(),
             assignment.getStatus(),
             assignment.getCoinRewardSnapshot(),
@@ -1680,7 +1690,6 @@ private ParentChoreAssignmentResponse toParentAssignmentResponse(
             assignment.getCreatedAt()
     );
 }
-
 @Transactional
 public void markOverdueAssignments() {
 

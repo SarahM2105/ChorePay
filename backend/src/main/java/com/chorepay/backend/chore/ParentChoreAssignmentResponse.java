@@ -14,6 +14,10 @@ public record ParentChoreAssignmentResponse(
 
         String description,
 
+        UUID createdByUserId,
+
+        String createdByName,
+
         Instant dueAt,
 
         ChoreAssignmentStatus status,

@@ -13,7 +13,7 @@ export const parentDashboardStyles =
       alignItems: 'center',
       paddingHorizontal: 22,
       paddingTop: 24,
-      paddingBottom: 60,
+      paddingBottom: 120,
     },
 
     page: {
@@ -592,4 +592,111 @@ memberRoleText: {
       maxWidth: 460,
       marginBottom: 20,
     },
+
+    choreList: {
+  gap: 10,
+},
+
+choreRow: {
+  backgroundColor: colors.background,
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 16,
+  padding: 14,
+
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 12,
+},
+
+choreIcon: {
+  width: 46,
+  height: 46,
+  borderRadius: 15,
+
+  backgroundColor:
+    colors.primaryLight,
+
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+choreInfo: {
+  flex: 1,
+},
+
+choreTopRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 10,
+  marginBottom: 8,
+},
+
+choreTitle: {
+  flex: 1,
+  color: colors.text,
+  fontSize: 15,
+  fontWeight: '900',
+},
+
+choreStatus: {
+  borderRadius: 999,
+  paddingHorizontal: 9,
+  paddingVertical: 4,
+},
+
+choreStatusAssigned: {
+  backgroundColor:
+    colors.primaryLight,
+},
+
+choreStatusSubmitted: {
+  backgroundColor:
+    colors.orangeLight,
+},
+
+choreStatusDanger: {
+  backgroundColor:
+    colors.redLight,
+},
+
+choreStatusText: {
+  color: colors.primary,
+  fontSize: 9,
+  fontWeight: '900',
+},
+
+choreStatusSubmittedText: {
+  color: '#C98200',
+},
+
+choreStatusDangerText: {
+  color: colors.error,
+},
+
+choreMeta: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: 12,
+},
+
+choreMetaItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 4,
+},
+
+choreMetaText: {
+  color: colors.textMuted,
+  fontSize: 11,
+  fontWeight: '600',
+},
+
+choreRewardText: {
+  color: '#D99419',
+  fontSize: 11,
+  fontWeight: '800',
+},
   });

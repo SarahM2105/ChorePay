@@ -6,6 +6,11 @@ import {
 } from 'expo-router';
 
 import {
+  ChildChoreAssignment,
+  getMyAssignments,
+} from '../services/chore.service';
+
+import {
   useCallback,
   useState,
 } from 'react';
@@ -62,6 +67,15 @@ export default function ChildDashboardScreen() {
     setCancellingRequest,
   ] = useState(false);
 
+
+  const [assignments, setAssignments] =
+  useState<ChildChoreAssignment[]>([]);
+
+const [loadingAssignments, setLoadingAssignments] =
+  useState(true);
+
+const [assignmentsError, setAssignmentsError] =
+  useState('');
   /*
    * Temporary display values.
    * Later these will come from the
@@ -89,9 +103,33 @@ export default function ChildDashboardScreen() {
         setFamily(familyResult);
 
         if (familyResult) {
-          setJoinRequest(null);
-          return;
-        }
+  setJoinRequest(null);
+
+  try {
+    setLoadingAssignments(true);
+    setAssignmentsError('');
+
+    const results =
+      await getMyAssignments(token);
+
+    setAssignments(results);
+  } catch (err) {
+    if (err instanceof Error) {
+      setAssignmentsError(err.message);
+    } else {
+      setAssignmentsError(
+        'Could not load your chores.'
+      );
+    }
+  } finally {
+    setLoadingAssignments(false);
+  }
+
+  return;
+}
+
+setAssignments([]);
+setLoadingAssignments(false);
 
         const requestResult =
           await getMyLatestJoinRequest(token);
@@ -158,7 +196,12 @@ export default function ChildDashboardScreen() {
     !joinRequest ||
     joinRequest.status === 'REJECTED' ||
     joinRequest.status === 'CANCELLED';
-
+const activeAssignments =
+  assignments.filter(
+    (assignment) =>
+      assignment.status !== 'APPROVED' &&
+      assignment.status !== 'CANCELLED'
+  );
   return (
     <View style={styles.screen}>
       <ScrollView
@@ -359,65 +402,209 @@ export default function ChildDashboardScreen() {
                   style={styles.questsColumn}
                 >
                   <View style={styles.questPanel}>
+  <View style={styles.sectionHeader}>
+    <Text style={styles.sectionTitle}>
+      Your quests
+    </Text>
+
+    <View style={styles.countBadge}>
+      <Text style={styles.countText}>
+        {loadingAssignments
+          ? '—'
+          : activeAssignments.length}
+      </Text>
+    </View>
+  </View>
+
+  {assignmentsError ? (
+    <Text style={styles.error}>
+      {assignmentsError}
+    </Text>
+  ) : loadingAssignments ? (
+    <View style={styles.emptyQuest}>
+      <Text style={styles.emptyQuestText}>
+        Loading your quests...
+      </Text>
+    </View>
+  ) : activeAssignments.length === 0 ? (
+    <View style={styles.emptyQuest}>
+      <View style={styles.emptyQuestIcon}>
+        <Ionicons
+          name="sparkles-outline"
+          size={27}
+          color="#6C5CE7"
+        />
+      </View>
+
+      <Text style={styles.emptyQuestTitle}>
+        No quests yet
+      </Text>
+
+      <Text style={styles.emptyQuestText}>
+        When a parent assigns you a chore,
+        it will appear here.
+      </Text>
+    </View>
+  ) : (
+    <View style={styles.questList}>
+      {activeAssignments.map(
+        (assignment) => {
+          const dueDate = assignment.dueAt
+            ? new Date(assignment.dueAt)
+            : null;
+
+          const statusLabel =
+            assignment.status === 'ASSIGNED'
+              ? 'TO DO'
+              : assignment.status ===
+                  'SUBMITTED'
+                ? 'WAITING FOR APPROVAL'
+                : assignment.status ===
+                    'REJECTED'
+                  ? 'NEEDS CHANGES'
+                  : assignment.status ===
+                      'OVERDUE'
+                    ? 'OVERDUE'
+                    : assignment.status;
+
+          const statusStyle =
+            assignment.status === 'SUBMITTED'
+              ? styles.submittedStatus
+              : assignment.status ===
+                    'REJECTED' ||
+                  assignment.status ===
+                    'OVERDUE'
+                ? styles.rejectedStatus
+                : styles.assignedStatus;
+
+          const statusTextStyle =
+            assignment.status === 'SUBMITTED'
+              ? styles.questStatusSubmittedText
+              : assignment.status ===
+                    'REJECTED' ||
+                  assignment.status ===
+                    'OVERDUE'
+                ? styles.questStatusDangerText
+                : undefined;
+
+          return (
+            <Pressable
+              key={assignment.assignmentId}
+              style={styles.questCard}
+            >
+              <View style={styles.questIcon}>
+                <Ionicons
+                  name="clipboard-outline"
+                  size={22}
+                  color="#4B988E"
+                />
+              </View>
+
+              <View style={styles.questInfo}>
+                <View
+                  style={[
+                    styles.questStatus,
+                    statusStyle,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.questStatusText,
+                      statusTextStyle,
+                    ]}
+                  >
+                    {statusLabel}
+                  </Text>
+                </View>
+
+                <Text style={styles.questTitle}>
+                  {assignment.title}
+                </Text>
+
+                <View style={styles.questMeta}>
+                  <View
+                    style={styles.questMetaItem}
+                  >
+                    <Ionicons
+                      name="ellipse"
+                      size={10}
+                      color="#F4B84A"
+                    />
+
+                    <Text
+                      style={styles.coinText}
+                    >
+                      {assignment.coinReward}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={styles.questMetaItem}
+                  >
+                    <Ionicons
+                      name="star"
+                      size={12}
+                      color="#6C5CE7"
+                    />
+
+                    <Text
+                      style={styles.xpMetaText}
+                    >
+                      {assignment.xpReward} XP
+                    </Text>
+                  </View>
+
+                  {dueDate && (
                     <View
                       style={
-                        styles.sectionHeader
+                        styles.questMetaItem
                       }
                     >
+                      <Ionicons
+                        name="time-outline"
+                        size={13}
+                        color="#6F6B7D"
+                      />
+
                       <Text
                         style={
-                          styles.sectionTitle
+                          styles.questMetaText
                         }
                       >
-                        Today's quests
-                      </Text>
-
-                      <View
-                        style={styles.countBadge}
-                      >
-                        <Text
-                          style={
-                            styles.countText
+                        {dueDate.toLocaleDateString(
+                          [],
+                          {
+                            day: 'numeric',
+                            month: 'short',
                           }
-                        >
-                          0
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View
-                      style={styles.emptyQuest}
-                    >
-                      <View
-                        style={
-                          styles.emptyQuestIcon
-                        }
-                      >
-                        <Ionicons
-                          name="sparkles-outline"
-                          size={27}
-                          color="#6C5CE7"
-                        />
-                      </View>
-
-                      <Text
-                        style={
-                          styles.emptyQuestTitle
-                        }
-                      >
-                        No quests yet
-                      </Text>
-
-                      <Text
-                        style={
-                          styles.emptyQuestText
-                        }
-                      >
-                        When a parent assigns you a
-                        chore, it will appear here.
+                        )}
+                        {' · '}
+                        {dueDate.toLocaleTimeString(
+                          [],
+                          {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          }
+                        )}
                       </Text>
                     </View>
-                  </View>
+                  )}
+                </View>
+              </View>
+
+              <Ionicons
+                name="chevron-forward"
+                size={18}
+                color="#6C5CE7"
+              />
+            </Pressable>
+          );
+        }
+      )}
+    </View>
+  )}
+</View>
+                
                 </View>
 
                 <View style={styles.sideColumn}>

@@ -117,6 +117,7 @@ public FamilyMember approveJoinRequest(
         User reviewer,
         UUID requestId
 ) {
+
     FamilyJoinRequest request =
             familyJoinRequestRepository.findById(requestId)
                     .orElseThrow(() ->
@@ -139,6 +140,10 @@ public FamilyMember approveJoinRequest(
                             )
                     );
 
+    /*
+     * The reviewer must belong to the
+     * same family as the join request.
+     */
     if (!reviewerMembership
             .getFamily()
             .getId()
@@ -149,13 +154,31 @@ public FamilyMember approveJoinRequest(
         );
     }
 
+    /*
+     * Children cannot approve anyone.
+     */
     if (reviewerMembership.getRole() == FamilyRole.CHILD) {
         throw new ForbiddenException(
                 "Children cannot approve join requests."
         );
     }
 
-    User joiningUser = request.getRequestedByUser();
+    /*
+     * Only the OWNER can add another PARENT.
+     *
+     * A normal parent can still approve a
+     * child joining the family.
+     */
+    if (request.getRequestedRole() == FamilyRole.PARENT
+            && reviewerMembership.getRole() != FamilyRole.OWNER) {
+
+        throw new ForbiddenException(
+                "Only the family owner can approve a parent."
+        );
+    }
+
+    User joiningUser =
+            request.getRequestedByUser();
 
     if (familyMemberRepository.existsByUser(joiningUser)) {
         throw new ForbiddenException(
@@ -163,19 +186,41 @@ public FamilyMember approveJoinRequest(
         );
     }
 
-    FamilyMember newMember = new FamilyMember();
-    newMember.setFamily(request.getFamily());
-    newMember.setUser(joiningUser);
-    newMember.setRole(request.getRequestedRole());
+    FamilyMember newMember =
+            new FamilyMember();
+
+    newMember.setFamily(
+            request.getFamily()
+    );
+
+    newMember.setUser(
+            joiningUser
+    );
+
+    newMember.setRole(
+            request.getRequestedRole()
+    );
 
     FamilyMember savedMember =
-            familyMemberRepository.save(newMember);
+            familyMemberRepository.save(
+                    newMember
+            );
 
-    request.setStatus(FamilyJoinRequestStatus.APPROVED);
-    request.setReviewedByUser(reviewer);
-    request.setReviewedAt(java.time.Instant.now());
+    request.setStatus(
+            FamilyJoinRequestStatus.APPROVED
+    );
 
-    familyJoinRequestRepository.save(request);
+    request.setReviewedByUser(
+            reviewer
+    );
+
+    request.setReviewedAt(
+            java.time.Instant.now()
+    );
+
+    familyJoinRequestRepository.save(
+            request
+    );
 
     return savedMember;
 }
@@ -185,6 +230,7 @@ public FamilyJoinRequest rejectJoinRequest(
         User reviewer,
         UUID requestId
 ) {
+
     FamilyJoinRequest request =
             familyJoinRequestRepository.findById(requestId)
                     .orElseThrow(() ->
@@ -207,6 +253,9 @@ public FamilyJoinRequest rejectJoinRequest(
                             )
                     );
 
+    /*
+     * Reviewer must belong to the same family.
+     */
     if (!reviewerMembership
             .getFamily()
             .getId()
@@ -217,18 +266,44 @@ public FamilyJoinRequest rejectJoinRequest(
         );
     }
 
+    /*
+     * Children cannot reject requests.
+     */
     if (reviewerMembership.getRole() == FamilyRole.CHILD) {
         throw new ForbiddenException(
                 "Children cannot reject join requests."
         );
     }
 
-    request.setStatus(FamilyJoinRequestStatus.REJECTED);
-    request.setReviewedByUser(reviewer);
-    request.setReviewedAt(java.time.Instant.now());
+    /*
+     * Only the owner can reject somebody
+     * asking to join as another parent.
+     */
+    if (request.getRequestedRole() == FamilyRole.PARENT
+            && reviewerMembership.getRole() != FamilyRole.OWNER) {
 
-    return familyJoinRequestRepository.save(request);
+        throw new ForbiddenException(
+                "Only the family owner can reject a parent request."
+        );
+    }
+
+    request.setStatus(
+            FamilyJoinRequestStatus.REJECTED
+    );
+
+    request.setReviewedByUser(
+            reviewer
+    );
+
+    request.setReviewedAt(
+            java.time.Instant.now()
+    );
+
+    return familyJoinRequestRepository.save(
+            request
+    );
 }
+
 
 public FamilyMember getMembership(User user) {
     return familyMemberRepository.findByUser(user)

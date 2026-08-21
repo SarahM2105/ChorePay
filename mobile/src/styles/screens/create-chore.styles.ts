@@ -151,4 +151,93 @@ export const createChoreStyles =
       lineHeight: 23,
       marginBottom: 24,
     },
+
+    assignmentSection: {
+  marginTop: 20,
+},
+
+assignmentTitle: {
+  fontSize: 20,
+  fontWeight: '900',
+  marginBottom: 6,
+},
+
+assignmentSubtitle: {
+  fontSize: 14,
+  lineHeight: 21,
+  marginBottom: 18,
+},
+
+childrenList: {
+  gap: 10,
+  marginBottom: 20,
+},
+
+childCard: {
+  minHeight: 58,
+  borderWidth: 1.5,
+  borderColor: colors.border,
+  borderRadius: 15,
+  paddingHorizontal: 16,
+  paddingVertical: 12,
+
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+},
+
+childCardSelected: {
+  borderColor: colors.primary,
+  backgroundColor: colors.primaryLight,
+},
+
+childName: {
+  fontSize: 15,
+  fontWeight: '800',
+},
+
+childRole: {
+  fontSize: 11,
+  marginTop: 3,
+},
+
+selectionCircle: {
+  width: 24,
+  height: 24,
+  borderRadius: 12,
+  borderWidth: 2,
+  borderColor: colors.border,
+
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+selectionCircleSelected: {
+  borderColor: colors.primary,
+  backgroundColor: colors.primary,
+},
+
+selectionCheck: {
+  color: colors.white,
+  fontSize: 13,
+  fontWeight: '900',
+},
+
+dateRow: {
+  flexDirection: 'row',
+  gap: 12,
+  marginBottom: 20,
+},
+
+dateField: {
+  flex: 1,
+},
+
+assignedCard: {
+  backgroundColor: colors.primaryLight,
+  borderRadius: 18,
+  padding: 20,
+  marginTop: 18,
+},
+
   });

@@ -502,4 +502,114 @@ export const childDashboardStyles =
       marginBottom: 14,
       textAlign: 'center',
     },
+
+
+    questList: {
+  gap: 10,
+},
+
+questCard: {
+  backgroundColor: colors.white,
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 17,
+  padding: 15,
+
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 13,
+},
+
+questIcon: {
+  width: 48,
+  height: 48,
+  borderRadius: 16,
+  backgroundColor: colors.tealLight,
+  alignItems: 'center',
+  justifyContent: 'center',
+},
+
+questInfo: {
+  flex: 1,
+},
+
+questTitle: {
+  color: colors.text,
+  fontSize: 15,
+  fontWeight: '900',
+  marginBottom: 7,
+},
+
+questMeta: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: 10,
+},
+
+questMetaItem: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 4,
+},
+
+questMetaText: {
+  color: colors.textMuted,
+  fontSize: 11,
+  fontWeight: '600',
+},
+
+coinText: {
+  color: '#D99419',
+  fontSize: 11,
+  fontWeight: '800',
+},
+
+xpMetaText: {
+  color: colors.primary,
+  fontSize: 11,
+  fontWeight: '800',
+},
+
+questStatus: {
+  alignSelf: 'flex-start',
+  borderRadius: 999,
+  paddingHorizontal: 9,
+  paddingVertical: 4,
+  marginBottom: 6,
+},
+
+assignedStatus: {
+  backgroundColor: colors.primaryLight,
+},
+
+submittedStatus: {
+  backgroundColor: colors.orangeLight,
+},
+
+rejectedStatus: {
+  backgroundColor: colors.redLight,
+},
+
+overdueStatus: {
+  backgroundColor: colors.redLight,
+},
+
+questStatusText: {
+  color: colors.primary,
+  fontSize: 9,
+  fontWeight: '900',
+  letterSpacing: 0.4,
+},
+
+questStatusDangerText: {
+  color: colors.error,
+},
+
+questStatusSubmittedText: {
+  color: '#C98200',
+},
+
   });
+
+  
