@@ -189,63 +189,120 @@ private List<ChoreChecklistItemResponse> getChecklistResponse(
 }
 
 
-    @Transactional
-    public ChoreTemplate createTemplate(
-            User user,
-            CreateChoreTemplateRequest request
-    ) {
-        FamilyMember membership =
-                familyMemberRepository.findByUser(user)
-                        .orElseThrow(() ->
-                                new ForbiddenException(
-                                        "User does not belong to a family."
-                                )
-                        );
+@Transactional
+public ChoreTemplate createTemplate(
+        User user,
+        CreateChoreTemplateRequest request
+) {
 
-        if (membership.getRole() == FamilyRole.CHILD) {
-            throw new ForbiddenException(
-                    "Children cannot create chore templates."
-            );
-        }
+    FamilyMember membership =
+            familyMemberRepository.findByUser(user)
+                    .orElseThrow(() ->
+                            new ForbiddenException(
+                                    "User does not belong to a family."
+                            )
+                    );
 
-        ChoreTemplate template = new ChoreTemplate();
-
-        template.setFamily(membership.getFamily());
-        template.setCreatedByUser(user);
-        template.setTitle(request.title());
-        template.setDescription(request.description());
-        template.setCategory(request.category());
-        template.setDifficulty(request.difficulty());
-        template.setEstimatedMinutes(request.estimatedMinutes());
-        template.setCoinReward(request.coinReward());
-
-        template.setXpReward(
-                calculateXp(request.coinReward(), request.difficulty())
+    if (membership.getRole() == FamilyRole.CHILD) {
+        throw new ForbiddenException(
+                "Children cannot create chore templates."
         );
-
-        template.setMoneyRewardPence(
-                request.moneyRewardPence() == null
-                        ? 0
-                        : request.moneyRewardPence()
-        );
-
-        template.setLatePenaltyPercent(
-                request.latePenaltyPercent() == null
-                        ? 0
-                        : request.latePenaltyPercent()
-        );
-
-        template.setResubmissionPenaltyPercent(
-                request.resubmissionPenaltyPercent() == null
-                        ? 0
-                        : request.resubmissionPenaltyPercent()
-        );
-
-        template.setPhotoRequired(request.photoRequired());
-        template.setCommentRequired(request.commentRequired());
-
-        return choreTemplateRepository.save(template);
     }
+
+    /*
+     * ChorePay calculates the game reward.
+     *
+     * Parents choose:
+     * - estimated time
+     * - difficulty
+     *
+     * ChorePay decides:
+     * - coins
+     * - XP
+     */
+    int coins =
+            calculateCoins(
+                    request.estimatedMinutes(),
+                    request.difficulty()
+            );
+
+    /*
+     * For now, XP matches coins.
+     *
+     * Difficulty is already included in
+     * calculateCoins(), so we do not apply
+     * another difficulty multiplier here.
+     */
+    int xp = coins;
+
+    ChoreTemplate template =
+            new ChoreTemplate();
+
+    template.setFamily(
+            membership.getFamily()
+    );
+
+    template.setCreatedByUser(user);
+
+    template.setTitle(
+            request.title()
+    );
+
+    template.setDescription(
+            request.description()
+    );
+
+    template.setCategory(
+            request.category()
+    );
+
+    template.setDifficulty(
+            request.difficulty()
+    );
+
+    template.setEstimatedMinutes(
+            request.estimatedMinutes()
+    );
+
+    template.setCoinReward(
+            coins
+    );
+
+    template.setXpReward(
+            xp
+    );
+
+    template.setMoneyRewardPence(
+            request.moneyRewardPence() == null
+                    ? 0
+                    : request.moneyRewardPence()
+    );
+
+    template.setLatePenaltyPercent(
+            request.latePenaltyPercent() == null
+                    ? 0
+                    : request.latePenaltyPercent()
+    );
+
+    template.setResubmissionPenaltyPercent(
+            request.resubmissionPenaltyPercent() == null
+                    ? 0
+                    : request.resubmissionPenaltyPercent()
+    );
+
+    template.setPhotoRequired(
+            request.photoRequired()
+    );
+
+    template.setCommentRequired(
+            request.commentRequired()
+    );
+
+    return choreTemplateRepository.save(
+            template
+    );
+}
+
 
     public java.util.List<ChoreTemplateResponse> getTemplates(User user) {
 
@@ -323,12 +380,23 @@ public ChoreTemplate updateTemplate(
     template.setDescription(request.description());
     template.setCategory(request.category());
     template.setDifficulty(request.difficulty());
-    template.setEstimatedMinutes(request.estimatedMinutes());
-    template.setCoinReward(request.coinReward());
+    template.setEstimatedMinutes(
+        request.estimatedMinutes()
+);
 
-    template.setXpReward(
-            calculateXp(request.coinReward(), request.difficulty())
-    );
+int coins =
+        calculateCoins(
+                request.estimatedMinutes(),
+                request.difficulty()
+        );
+
+template.setCoinReward(
+        coins
+);
+
+template.setXpReward(
+        coins
+);
 
     template.setMoneyRewardPence(
             request.moneyRewardPence() == null
@@ -1711,6 +1779,56 @@ public void markOverdueAssignments() {
 
     choreAssignmentRepository.saveAll(
             overdueAssignments
+    );
+}
+
+private int calculateCoins(
+        int estimatedMinutes,
+        ChoreDifficulty difficulty
+) {
+
+    /*
+     * Every 10 minutes is worth
+     * 5 base coins.
+     *
+     * We round UP so an 11-minute chore,
+     * for example, receives the 20-minute
+     * base reward.
+     */
+    int baseCoins =
+            (int) Math.ceil(
+                    estimatedMinutes / 10.0
+            ) * 5;
+
+    double difficultyMultiplier =
+            switch (difficulty) {
+                case EASY -> 1.0;
+                case MEDIUM -> 1.25;
+                case HARD -> 1.5;
+            };
+
+    int calculatedCoins =
+            (int) Math.round(
+                    baseCoins *
+                            difficultyMultiplier
+            );
+
+    /*
+     * Keep rewards visually simple by
+     * rounding to the nearest 5 coins.
+     */
+    int roundedCoins =
+            (int) Math.round(
+                    calculatedCoins / 5.0
+            ) * 5;
+
+    /*
+     * Every chore is worth at least
+     * 5 coins.
+     */
+    return Math.max(
+            5,
+            roundedCoins
     );
 }
 

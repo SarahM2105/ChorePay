@@ -19,12 +19,9 @@ public record UpdateChoreTemplateRequest(
         @NotNull
         ChoreDifficulty difficulty,
 
+        @NotNull
         @Min(1)
         Integer estimatedMinutes,
-
-        @NotNull
-        @Min(0)
-        Integer coinReward,
 
         @Min(0)
         Integer moneyRewardPence,
@@ -40,5 +37,6 @@ public record UpdateChoreTemplateRequest(
         boolean photoRequired,
 
         boolean commentRequired
+
 ) {
 }

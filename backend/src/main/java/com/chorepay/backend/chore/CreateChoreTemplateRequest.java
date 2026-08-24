@@ -19,12 +19,9 @@ public record CreateChoreTemplateRequest(
         @NotNull
         ChoreDifficulty difficulty,
 
+        @NotNull
         @Min(1)
         Integer estimatedMinutes,
-
-        @NotNull
-        @Min(0)
-        Integer coinReward,
 
         @Min(0)
         Integer moneyRewardPence,
