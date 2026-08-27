@@ -30,13 +30,24 @@ import {
 
 import { commonStyles } from '../styles/common.styles';
 
-import { createChoreStyles } from '../styles/screens/create-chore.styles';
+import {
+  createChoreStyles,
+} from '../styles/screens/create-chore.styles';
+import { DueDateTimePicker } from '@/components/DueDateTimePicker.web';
+
+const durationOptions = [
+  10,
+  20,
+  30,
+  45,
+  60,
+];
 
 export default function CreateChoreScreen() {
   const { token } = useAuth();
 
   /*
-   * Chore template fields
+   * BASIC CHORE DETAILS
    */
 
   const [title, setTitle] =
@@ -56,19 +67,14 @@ export default function CreateChoreScreen() {
     setEstimatedMinutes,
   ] = useState('');
 
-  const [coinReward, setCoinReward] =
-    useState('');
-
-  const [moneyReward, setMoneyReward] =
-    useState('');
-
-  const [latePenalty, setLatePenalty] =
-    useState('');
-
   const [
-    resubmissionPenalty,
-    setResubmissionPenalty,
+    moneyReward,
+    setMoneyReward,
   ] = useState('');
+
+  /*
+   * OPTIONAL REQUIREMENTS
+   */
 
   const [
     photoRequired,
@@ -81,7 +87,26 @@ export default function CreateChoreScreen() {
   ] = useState(false);
 
   /*
-   * Template creation state
+   * ADVANCED OPTIONS
+   */
+
+  const [
+    showAdvanced,
+    setShowAdvanced,
+  ] = useState(false);
+
+  const [
+    latePenalty,
+    setLatePenalty,
+  ] = useState('');
+
+  const [
+    resubmissionPenalty,
+    setResubmissionPenalty,
+  ] = useState('');
+
+  /*
+   * TEMPLATE CREATION
    */
 
   const [loading, setLoading] =
@@ -98,7 +123,7 @@ export default function CreateChoreScreen() {
   );
 
   /*
-   * Assignment state
+   * ASSIGNMENT
    */
 
   const [
@@ -116,232 +141,305 @@ export default function CreateChoreScreen() {
     setLoadingChildren,
   ] = useState(false);
 
-  const [assigning, setAssigning] =
-    useState(false);
+  const [
+    assigning,
+    setAssigning,
+  ] = useState(false);
 
   const [
     assignmentError,
     setAssignmentError,
   ] = useState('');
 
-  const [assigned, setAssigned] =
-    useState(false);
+  const [
+    assigned,
+    setAssigned,
+  ] = useState(false);
 
-  const [dueDate, setDueDate] =
-    useState('');
+  const [
+    dueDate,
+    setDueDate,
+  ] = useState('');
 
-  const [dueTime, setDueTime] =
-    useState('');
+  const [
+    dueTime,
+    setDueTime,
+  ] = useState('');
 
   /*
-   * Create the reusable chore template
+   * LIVE REWARD PREVIEW
+   *
+   * This mirrors the backend formula.
+   *
+   * The backend remains the real
+   * authority for rewards.
    */
 
-  const handleCreateChore = async () => {
-    setError('');
-
-    if (!title.trim()) {
-      setError(
-        'Please enter a chore title.'
-      );
-
-      return;
-    }
-
-    if (!coinReward.trim()) {
-      setError(
-        'Please enter a coin reward.'
-      );
-
-      return;
-    }
-
-    const coins = Number(coinReward);
+  const calculatePreviewCoins = () => {
+    const minutes =
+      Number(estimatedMinutes);
 
     if (
-      Number.isNaN(coins) ||
-      coins < 0
+      Number.isNaN(minutes) ||
+      minutes < 1
     ) {
-      setError(
-        'Coin reward must be 0 or more.'
+      return 0;
+    }
+
+    const baseCoins =
+      Math.ceil(
+        minutes / 10
+      ) * 5;
+
+    const multiplier =
+      difficulty === 'EASY'
+        ? 1
+        : difficulty === 'MEDIUM'
+          ? 1.25
+          : 1.5;
+
+    const calculatedCoins =
+      Math.round(
+        baseCoins * multiplier
       );
 
-      return;
-    }
+    const roundedCoins =
+      Math.round(
+        calculatedCoins / 5
+      ) * 5;
 
-    if (
-      estimatedMinutes &&
-      (
-        Number.isNaN(
-          Number(estimatedMinutes)
-        ) ||
-        Number(estimatedMinutes) < 1
-      )
-    ) {
-      setError(
-        'Estimated minutes must be at least 1.'
-      );
-
-      return;
-    }
-
-    if (
-      latePenalty &&
-      (
-        Number(latePenalty) < 0 ||
-        Number(latePenalty) > 100
-      )
-    ) {
-      setError(
-        'Late penalty must be between 0 and 100.'
-      );
-
-      return;
-    }
-
-    if (
-      resubmissionPenalty &&
-      (
-        Number(resubmissionPenalty) < 0 ||
-        Number(resubmissionPenalty) > 100
-      )
-    ) {
-      setError(
-        'Resubmission penalty must be between 0 and 100.'
-      );
-
-      return;
-    }
-
-    if (!token) {
-      setError(
-        'Your session has expired. Please log in again.'
-      );
-
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const chore =
-        await createChoreTemplate(
-          {
-            title: title.trim(),
-
-            description:
-              description.trim() ||
-              undefined,
-
-            category:
-              category.trim() ||
-              undefined,
-
-            difficulty,
-
-            estimatedMinutes:
-              estimatedMinutes
-                ? Number(
-                    estimatedMinutes
-                  )
-                : undefined,
-
-            coinReward: coins,
-
-            moneyRewardPence:
-              moneyReward
-                ? Math.round(
-                    Number(
-                      moneyReward
-                    ) * 100
-                  )
-                : undefined,
-
-            latePenaltyPercent:
-              latePenalty
-                ? Number(
-                    latePenalty
-                  )
-                : undefined,
-
-            resubmissionPenaltyPercent:
-              resubmissionPenalty
-                ? Number(
-                    resubmissionPenalty
-                  )
-                : undefined,
-
-            photoRequired,
-
-            commentRequired,
-          },
-
-          token
-        );
-
-      setCreatedChore(chore);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError(
-          'Something went wrong.'
-        );
-      }
-    } finally {
-      setLoading(false);
-    }
+    return Math.max(
+      5,
+      roundedCoins
+    );
   };
 
+  const previewCoins =
+    calculatePreviewCoins();
+
+  const previewXp =
+    previewCoins;
+
   /*
-   * Once the template has been created,
-   * load all CHILD members of the family.
+   * CREATE TEMPLATE
    */
 
-  useEffect(() => {
-    const loadChildren = async () => {
+  const handleCreateChore =
+    async () => {
+      setError('');
+
+      if (!title.trim()) {
+        setError(
+          'Please enter a chore title.'
+        );
+
+        return;
+      }
+
+      if (!estimatedMinutes.trim()) {
+        setError(
+          'Choose how long the chore should take.'
+        );
+
+        return;
+      }
+
+      const minutes =
+        Number(estimatedMinutes);
+
       if (
-        !token ||
-        !createdChore
+        Number.isNaN(minutes) ||
+        minutes < 1
       ) {
+        setError(
+          'Estimated time must be at least 1 minute.'
+        );
+
+        return;
+      }
+
+      if (moneyReward) {
+        const money =
+          Number(moneyReward);
+
+        if (
+          Number.isNaN(money) ||
+          money < 0
+        ) {
+          setError(
+            'Money reward must be 0 or more.'
+          );
+
+          return;
+        }
+      }
+
+      if (
+        latePenalty &&
+        (
+          Number(latePenalty) < 0 ||
+          Number(latePenalty) > 100
+        )
+      ) {
+        setError(
+          'Late penalty must be between 0 and 100.'
+        );
+
+        return;
+      }
+
+      if (
+        resubmissionPenalty &&
+        (
+          Number(
+            resubmissionPenalty
+          ) < 0 ||
+          Number(
+            resubmissionPenalty
+          ) > 100
+        )
+      ) {
+        setError(
+          'Resubmission penalty must be between 0 and 100.'
+        );
+
+        return;
+      }
+
+      if (!token) {
+        setError(
+          'Your session has expired. Please log in again.'
+        );
+
         return;
       }
 
       try {
-        setLoadingChildren(true);
+        setLoading(true);
 
-        setAssignmentError('');
+        const chore =
+          await createChoreTemplate(
+            {
+              title:
+                title.trim(),
 
-        const members =
-          await getFamilyMembers(token);
+              description:
+                description.trim() ||
+                undefined,
 
-        const children =
-          members.filter(
-            (member) =>
-              member.role === 'CHILD'
+              category:
+                category.trim() ||
+                undefined,
+
+              difficulty,
+
+              estimatedMinutes:
+                minutes,
+
+              moneyRewardPence:
+                moneyReward
+                  ? Math.round(
+                      Number(
+                        moneyReward
+                      ) * 100
+                    )
+                  : undefined,
+
+              latePenaltyPercent:
+                latePenalty
+                  ? Number(
+                      latePenalty
+                    )
+                  : undefined,
+
+              resubmissionPenaltyPercent:
+                resubmissionPenalty
+                  ? Number(
+                      resubmissionPenalty
+                    )
+                  : undefined,
+
+              photoRequired,
+
+              commentRequired,
+            },
+
+            token
           );
 
-        setFamilyMembers(children);
+        setCreatedChore(chore);
       } catch (err) {
-        if (err instanceof Error) {
-          setAssignmentError(
-            err.message
-          );
+        if (
+          err instanceof Error
+        ) {
+          setError(err.message);
         } else {
-          setAssignmentError(
-            'Could not load family members.'
+          setError(
+            'Something went wrong.'
           );
         }
       } finally {
-        setLoadingChildren(false);
+        setLoading(false);
       }
     };
+
+  /*
+   * LOAD CHILDREN ONCE THE
+   * TEMPLATE HAS BEEN CREATED
+   */
+
+  useEffect(() => {
+    const loadChildren =
+      async () => {
+        if (
+          !token ||
+          !createdChore
+        ) {
+          return;
+        }
+
+        try {
+          setLoadingChildren(true);
+
+          setAssignmentError('');
+
+          const members =
+            await getFamilyMembers(
+              token
+            );
+
+          const children =
+            members.filter(
+              (member) =>
+                member.role ===
+                'CHILD'
+            );
+
+          setFamilyMembers(
+            children
+          );
+        } catch (err) {
+          if (
+            err instanceof Error
+          ) {
+            setAssignmentError(
+              err.message
+            );
+          } else {
+            setAssignmentError(
+              'Could not load family members.'
+            );
+          }
+        } finally {
+          setLoadingChildren(false);
+        }
+      };
 
     loadChildren();
   }, [createdChore, token]);
 
   /*
-   * Select / deselect children.
+   * CHILD SELECTION
    */
 
   const toggleChild = (
@@ -367,7 +465,7 @@ export default function CreateChoreScreen() {
   };
 
   /*
-   * Assign the newly created template.
+   * ASSIGN CHORE
    */
 
   const handleAssignChore =
@@ -382,7 +480,8 @@ export default function CreateChoreScreen() {
       setAssignmentError('');
 
       if (
-        selectedChildren.length === 0
+        selectedChildren.length ===
+        0
       ) {
         setAssignmentError(
           'Choose at least one child.'
@@ -395,15 +494,10 @@ export default function CreateChoreScreen() {
         | string
         | undefined;
 
-      /*
-       * Due date is optional.
-       *
-       * But if the parent enters one
-       * part, they must enter both the
-       * date and time.
-       */
-
-      if (dueDate || dueTime) {
+      if (
+        dueDate ||
+        dueTime
+      ) {
         if (
           !dueDate ||
           !dueTime
@@ -507,13 +601,27 @@ export default function CreateChoreScreen() {
             createChoreStyles.topBar
           }
         >
-          <Text
+          <View
             style={
-              createChoreStyles.logo
+              createChoreStyles.brand
             }
           >
-            ChorePay
-          </Text>
+            <Text
+              style={
+                createChoreStyles.brandChore
+              }
+            >
+              CHORE
+            </Text>
+
+            <Text
+              style={
+                createChoreStyles.brandPay
+              }
+            >
+              PAY
+            </Text>
+          </View>
 
           <Pressable
             style={
@@ -534,12 +642,9 @@ export default function CreateChoreScreen() {
         </View>
 
         {!createdChore ? (
-          /*
-           * STEP 1:
-           * CREATE TEMPLATE
-           */
-
           <>
+            {/* STEP 1 */}
+
             <Text
               style={
                 createChoreStyles.title
@@ -553,9 +658,9 @@ export default function CreateChoreScreen() {
                 createChoreStyles.subtitle
               }
             >
-              Create a reusable chore
-              template. You'll choose who
-              to assign it to afterwards.
+              Tell ChorePay what needs
+              doing. We'll work out a
+              fair game reward for you.
             </Text>
 
             <View
@@ -571,7 +676,7 @@ export default function CreateChoreScreen() {
                     commonStyles.fieldLabel
                   }
                 >
-                  Chore title
+                  What needs doing?
                 </Text>
 
                 <TextInput
@@ -595,13 +700,13 @@ export default function CreateChoreScreen() {
                     commonStyles.fieldLabel
                   }
                 >
-                  Description
+                  Instructions
+                  (optional)
                 </Text>
 
                 <TextInput
                   style={[
                     commonStyles.input,
-
                     createChoreStyles.textArea,
                   ]}
                   value={
@@ -610,7 +715,7 @@ export default function CreateChoreScreen() {
                   onChangeText={
                     setDescription
                   }
-                  placeholder="Add instructions or details..."
+                  placeholder="e.g. Make the bed and put clothes away"
                   multiline
                 />
               </View>
@@ -624,6 +729,7 @@ export default function CreateChoreScreen() {
                   }
                 >
                   Category
+                  (optional)
                 </Text>
 
                 <TextInput
@@ -646,7 +752,7 @@ export default function CreateChoreScreen() {
                     commonStyles.fieldLabel
                   }
                 >
-                  Difficulty
+                  How difficult is it?
                 </Text>
 
                 <View
@@ -691,14 +797,13 @@ export default function CreateChoreScreen() {
                                 createChoreStyles.difficultySelectedText,
                             ]}
                           >
-                            {option.charAt(
-                              0
-                            ) +
-                              option
-                                .slice(
-                                  1
-                                )
-                                .toLowerCase()}
+                            {option ===
+                            'EASY'
+                              ? 'Easy'
+                              : option ===
+                                  'MEDIUM'
+                                ? 'Medium'
+                                : 'Hard'}
                           </Text>
                         </Pressable>
                       );
@@ -707,71 +812,7 @@ export default function CreateChoreScreen() {
                 </View>
               </View>
 
-              {/* TIME + COINS */}
-
-              <View
-                style={
-                  createChoreStyles.row
-                }
-              >
-                <View
-                  style={
-                    createChoreStyles.halfField
-                  }
-                >
-                  <Text
-                    style={
-                      commonStyles.fieldLabel
-                    }
-                  >
-                    Estimated minutes
-                  </Text>
-
-                  <TextInput
-                    style={
-                      commonStyles.input
-                    }
-                    value={
-                      estimatedMinutes
-                    }
-                    onChangeText={
-                      setEstimatedMinutes
-                    }
-                    placeholder="30"
-                    keyboardType="number-pad"
-                  />
-                </View>
-
-                <View
-                  style={
-                    createChoreStyles.halfField
-                  }
-                >
-                  <Text
-                    style={
-                      commonStyles.fieldLabel
-                    }
-                  >
-                    Coin reward
-                  </Text>
-
-                  <TextInput
-                    style={
-                      commonStyles.input
-                    }
-                    value={
-                      coinReward
-                    }
-                    onChangeText={
-                      setCoinReward
-                    }
-                    placeholder="20"
-                    keyboardType="number-pad"
-                  />
-                </View>
-              </View>
-
-              {/* MONEY */}
+              {/* DURATION */}
 
               <View>
                 <Text
@@ -779,8 +820,228 @@ export default function CreateChoreScreen() {
                     commonStyles.fieldLabel
                   }
                 >
-                  Money reward (£,
-                  optional)
+                  How long will it take?
+                </Text>
+
+                <View
+                  style={
+                    createChoreStyles.durationRow
+                  }
+                >
+                  {durationOptions.map(
+                    (minutes) => {
+                      const selected =
+                        estimatedMinutes ===
+                        String(minutes);
+
+                      return (
+                        <Pressable
+                          key={
+                            minutes
+                          }
+                          style={[
+                            createChoreStyles.durationButton,
+
+                            selected &&
+                              createChoreStyles.durationButtonSelected,
+                          ]}
+                          onPress={() =>
+                            setEstimatedMinutes(
+                              String(
+                                minutes
+                              )
+                            )
+                          }
+                        >
+                          <Text
+                            style={[
+                              createChoreStyles.durationText,
+
+                              selected &&
+                                createChoreStyles.durationTextSelected,
+                            ]}
+                          >
+                            {minutes} min
+                          </Text>
+                        </Pressable>
+                      );
+                    }
+                  )}
+                </View>
+
+                <Text
+                  style={
+                    createChoreStyles.customTimeLabel
+                  }
+                >
+                  Or enter a custom time
+                </Text>
+
+                <TextInput
+                  style={
+                    commonStyles.input
+                  }
+                  value={
+                    estimatedMinutes
+                  }
+                  onChangeText={
+                    setEstimatedMinutes
+                  }
+                  placeholder="Minutes"
+                  keyboardType="number-pad"
+                />
+              </View>
+
+              {/* AUTO REWARD */}
+
+              <View
+                style={
+                  createChoreStyles.rewardCard
+                }
+              >
+                <View
+                  style={
+                    createChoreStyles.rewardHeader
+                  }
+                >
+                  <Text
+                    style={
+                      createChoreStyles.rewardTitle
+                    }
+                  >
+                    🎮 ChorePay reward
+                  </Text>
+
+                  <View
+                    style={
+                      createChoreStyles.autoBadge
+                    }
+                  >
+                    <Text
+                      style={
+                        createChoreStyles.autoBadgeText
+                      }
+                    >
+                      AUTO
+                    </Text>
+                  </View>
+                </View>
+
+                {previewCoins >
+                0 ? (
+                  <>
+                    <View
+                      style={
+                        createChoreStyles.rewardValues
+                      }
+                    >
+                      <View
+                        style={
+                          createChoreStyles.rewardValue
+                        }
+                      >
+                        <Text
+                          style={
+                            createChoreStyles.rewardEmoji
+                          }
+                        >
+                          🪙
+                        </Text>
+
+                        <View>
+                          <Text
+                            style={
+                              createChoreStyles.rewardNumber
+                            }
+                          >
+                            {
+                              previewCoins
+                            }
+                          </Text>
+
+                          <Text
+                            style={
+                              createChoreStyles.rewardLabel
+                            }
+                          >
+                            coins
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View
+                        style={
+                          createChoreStyles.rewardDivider
+                        }
+                      />
+
+                      <View
+                        style={
+                          createChoreStyles.rewardValue
+                        }
+                      >
+                        <Text
+                          style={
+                            createChoreStyles.rewardEmoji
+                          }
+                        >
+                          ⭐
+                        </Text>
+
+                        <View>
+                          <Text
+                            style={
+                              createChoreStyles.rewardNumber
+                            }
+                          >
+                            {
+                              previewXp
+                            }
+                          </Text>
+
+                          <Text
+                            style={
+                              createChoreStyles.rewardLabel
+                            }
+                          >
+                            XP
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    <Text
+                      style={
+                        createChoreStyles.rewardHint
+                      }
+                    >
+                      Calculated from
+                      difficulty and
+                      estimated time.
+                    </Text>
+                  </>
+                ) : (
+                  <Text
+                    style={
+                      createChoreStyles.rewardHint
+                    }
+                  >
+                    Choose a time to see
+                    the reward.
+                  </Text>
+                )}
+              </View>
+
+              {/* OPTIONAL CASH */}
+
+              <View>
+                <Text
+                  style={
+                    commonStyles.fieldLabel
+                  }
+                >
+                  Cash reward
+                  (optional)
                 </Text>
 
                 <TextInput
@@ -796,74 +1057,19 @@ export default function CreateChoreScreen() {
                   placeholder="e.g. 2.50"
                   keyboardType="decimal-pad"
                 />
-              </View>
 
-              {/* PENALTIES */}
-
-              <View
-                style={
-                  createChoreStyles.row
-                }
-              >
-                <View
+                <Text
                   style={
-                    createChoreStyles.halfField
+                    createChoreStyles.helperText
                   }
                 >
-                  <Text
-                    style={
-                      commonStyles.fieldLabel
-                    }
-                  >
-                    Late penalty %
-                  </Text>
-
-                  <TextInput
-                    style={
-                      commonStyles.input
-                    }
-                    value={
-                      latePenalty
-                    }
-                    onChangeText={
-                      setLatePenalty
-                    }
-                    placeholder="0"
-                    keyboardType="number-pad"
-                  />
-                </View>
-
-                <View
-                  style={
-                    createChoreStyles.halfField
-                  }
-                >
-                  <Text
-                    style={
-                      commonStyles.fieldLabel
-                    }
-                  >
-                    Resubmission
-                    penalty %
-                  </Text>
-
-                  <TextInput
-                    style={
-                      commonStyles.input
-                    }
-                    value={
-                      resubmissionPenalty
-                    }
-                    onChangeText={
-                      setResubmissionPenalty
-                    }
-                    placeholder="0"
-                    keyboardType="number-pad"
-                  />
-                </View>
+                  Game coins are
+                  automatic. Cash rewards
+                  are completely optional.
+                </Text>
               </View>
 
-              {/* PHOTO REQUIRED */}
+              {/* REQUIRE PHOTO */}
 
               <View
                 style={
@@ -888,9 +1094,8 @@ export default function CreateChoreScreen() {
                       createChoreStyles.switchDescription
                     }
                   >
-                    The child must include
-                    a photo when submitting
-                    the chore.
+                    Ask for a photo when
+                    the chore is submitted.
                   </Text>
                 </View>
 
@@ -904,7 +1109,7 @@ export default function CreateChoreScreen() {
                 />
               </View>
 
-              {/* COMMENT REQUIRED */}
+              {/* REQUIRE COMMENT */}
 
               <View
                 style={
@@ -929,9 +1134,8 @@ export default function CreateChoreScreen() {
                       createChoreStyles.switchDescription
                     }
                   >
-                    The child must add a
-                    comment before
-                    submitting.
+                    Ask the child to leave
+                    a short note.
                   </Text>
                 </View>
 
@@ -944,6 +1148,118 @@ export default function CreateChoreScreen() {
                   }
                 />
               </View>
+
+              {/* ADVANCED */}
+
+              <Pressable
+                style={
+                  createChoreStyles.advancedButton
+                }
+                onPress={() =>
+                  setShowAdvanced(
+                    (current) =>
+                      !current
+                  )
+                }
+              >
+                <View>
+                  <Text
+                    style={
+                      createChoreStyles.advancedTitle
+                    }
+                  >
+                    Advanced options
+                  </Text>
+
+                  <Text
+                    style={
+                      createChoreStyles.advancedSubtitle
+                    }
+                  >
+                    Optional penalties
+                  </Text>
+                </View>
+
+                <Text
+                  style={
+                    createChoreStyles.advancedChevron
+                  }
+                >
+                  {showAdvanced
+                    ? '▲'
+                    : '▼'}
+                </Text>
+              </Pressable>
+
+              {showAdvanced && (
+                <View
+                  style={
+                    createChoreStyles.advancedPanel
+                  }
+                >
+                  <View
+                    style={
+                      createChoreStyles.row
+                    }
+                  >
+                    <View
+                      style={
+                        createChoreStyles.halfField
+                      }
+                    >
+                      <Text
+                        style={
+                          commonStyles.fieldLabel
+                        }
+                      >
+                        Late penalty %
+                      </Text>
+
+                      <TextInput
+                        style={
+                          commonStyles.input
+                        }
+                        value={
+                          latePenalty
+                        }
+                        onChangeText={
+                          setLatePenalty
+                        }
+                        placeholder="0"
+                        keyboardType="number-pad"
+                      />
+                    </View>
+
+                    <View
+                      style={
+                        createChoreStyles.halfField
+                      }
+                    >
+                      <Text
+                        style={
+                          commonStyles.fieldLabel
+                        }
+                      >
+                        Retry penalty %
+                      </Text>
+
+                      <TextInput
+                        style={
+                          commonStyles.input
+                        }
+                        value={
+                          resubmissionPenalty
+                        }
+                        onChangeText={
+                          setResubmissionPenalty
+                        }
+                        placeholder="0"
+                        keyboardType="number-pad"
+                      />
+                    </View>
+                  </View>
+                </View>
+              )}
             </View>
 
             {error ? (
@@ -983,8 +1299,8 @@ export default function CreateChoreScreen() {
           </>
         ) : (
           /*
-           * STEP 2:
-           * ASSIGN TEMPLATE
+           * STEP 2
+           * ASSIGN CHORE
            */
 
           <View
@@ -1016,10 +1332,12 @@ export default function CreateChoreScreen() {
                   }
                 >
                   "{createdChore.title}"
-                  has been saved as a
-                  reusable template. Now
-                  choose who should
-                  complete it.
+                  is worth{' '}
+                  {createdChore.coinReward}{' '}
+                  coins and{' '}
+                  {createdChore.xpReward}{' '}
+                  XP. Now choose who
+                  should complete it.
                 </Text>
 
                 <View
@@ -1041,8 +1359,7 @@ export default function CreateChoreScreen() {
                     }
                   >
                     Choose one or more
-                    children from your
-                    family.
+                    children.
                   </Text>
 
                   {loadingChildren ? (
@@ -1135,60 +1452,12 @@ export default function CreateChoreScreen() {
                     </View>
                   )}
 
-                  {/* DUE DATE */}
-
-                  <Text
-                    style={
-                      commonStyles.fieldLabel
-                    }
-                  >
-                    Due date & time
-                    (optional)
-                  </Text>
-
-                  <View
-                    style={
-                      createChoreStyles.dateRow
-                    }
-                  >
-                    <View
-                      style={
-                        createChoreStyles.dateField
-                      }
-                    >
-                      <TextInput
-                        style={
-                          commonStyles.input
-                        }
-                        value={
-                          dueDate
-                        }
-                        onChangeText={
-                          setDueDate
-                        }
-                        placeholder="2026-08-22"
-                      />
-                    </View>
-
-                    <View
-                      style={
-                        createChoreStyles.dateField
-                      }
-                    >
-                      <TextInput
-                        style={
-                          commonStyles.input
-                        }
-                        value={
-                          dueTime
-                        }
-                        onChangeText={
-                          setDueTime
-                        }
-                        placeholder="18:00"
-                      />
-                    </View>
-                  </View>
+                <DueDateTimePicker
+  dueDate={dueDate}
+  dueTime={dueTime}
+  onDateChange={setDueDate}
+  onTimeChange={setDueTime}
+/>
 
                   {assignmentError ? (
                     <Text
@@ -1239,8 +1508,7 @@ export default function CreateChoreScreen() {
               </>
             ) : (
               /*
-               * STEP 3:
-               * SUCCESS
+               * STEP 3
                */
 
               <>
@@ -1267,9 +1535,7 @@ export default function CreateChoreScreen() {
                 >
                   "{createdChore.title}"
                   has been assigned
-                  successfully. It will now
-                  appear on the selected
-                  child's dashboard.
+                  successfully.
                 </Text>
 
                 <Pressable
@@ -1278,7 +1544,7 @@ export default function CreateChoreScreen() {
                   }
                   onPress={() =>
                     router.replace(
-                      '/parent-dashboard'
+                      '/chores'
                     )
                   }
                 >
@@ -1287,7 +1553,7 @@ export default function CreateChoreScreen() {
                       commonStyles.primaryButtonText
                     }
                   >
-                    Back to dashboard
+                    View chores
                   </Text>
                 </Pressable>
               </>

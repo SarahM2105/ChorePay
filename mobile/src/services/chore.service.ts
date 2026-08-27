@@ -26,15 +26,20 @@ export type CreateChoreTemplateRequest = {
   title: string;
   description?: string;
   category?: string;
+
   difficulty: ChoreDifficulty;
-  estimatedMinutes?: number;
-  coinReward: number;
+
+  estimatedMinutes: number;
+
   moneyRewardPence?: number;
+
   latePenaltyPercent?: number;
   resubmissionPenaltyPercent?: number;
+
   photoRequired: boolean;
   commentRequired: boolean;
 };
+
 
 async function getErrorMessage(
   response: Response,

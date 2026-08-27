@@ -27,11 +27,6 @@ export const createChoreStyles =
       marginBottom: 34,
     },
 
-    logo: {
-      fontSize: 24,
-      fontWeight: '900',
-    },
-
     backButton: {
       alignSelf: 'flex-start',
     },
@@ -238,6 +233,197 @@ assignedCard: {
   borderRadius: 18,
   padding: 20,
   marginTop: 18,
+},
+
+brand: {
+  flexDirection: 'row',
+},
+
+brandChore: {
+  color: colors.text,
+  fontSize: 23,
+  fontWeight: '900',
+},
+
+brandPay: {
+  color: colors.primary,
+  fontSize: 23,
+  fontWeight: '900',
+},
+
+durationRow: {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  gap: 8,
+},
+
+durationButton: {
+  borderWidth: 1.5,
+  borderColor: colors.border,
+  backgroundColor: colors.white,
+  borderRadius: 12,
+  paddingHorizontal: 14,
+  paddingVertical: 10,
+},
+
+durationButtonSelected: {
+  borderColor: colors.primary,
+  backgroundColor: colors.primaryLight,
+},
+
+durationText: {
+  color: colors.textMuted,
+  fontSize: 12,
+  fontWeight: '800',
+},
+
+durationTextSelected: {
+  color: colors.primary,
+},
+
+customTimeLabel: {
+  color: colors.textMuted,
+  fontSize: 11,
+  fontWeight: '600',
+  marginTop: 12,
+  marginBottom: 7,
+},
+
+rewardCard: {
+  backgroundColor: colors.primaryLight,
+  borderRadius: 18,
+  padding: 18,
+},
+
+rewardHeader: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  marginBottom: 15,
+},
+
+rewardTitle: {
+  color: colors.text,
+  fontSize: 15,
+  fontWeight: '900',
+},
+
+autoBadge: {
+  backgroundColor: colors.white,
+  borderRadius: 999,
+  paddingHorizontal: 9,
+  paddingVertical: 5,
+},
+
+autoBadgeText: {
+  color: colors.primary,
+  fontSize: 9,
+  fontWeight: '900',
+  letterSpacing: 0.5,
+},
+
+rewardValues: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+
+rewardValue: {
+  flex: 1,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 9,
+},
+
+rewardEmoji: {
+  fontSize: 25,
+},
+
+rewardNumber: {
+  color: colors.text,
+  fontSize: 21,
+  fontWeight: '900',
+},
+
+rewardLabel: {
+  color: colors.textMuted,
+  fontSize: 10,
+  fontWeight: '700',
+},
+
+rewardDivider: {
+  width: 1,
+  height: 38,
+  backgroundColor: colors.border,
+},
+
+rewardHint: {
+  color: colors.textMuted,
+  fontSize: 11,
+  textAlign: 'center',
+  marginTop: 13,
+},
+
+helperText: {
+  color: colors.textMuted,
+  fontSize: 10,
+  marginTop: 7,
+  lineHeight: 15,
+},
+
+advancedButton: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 14,
+  padding: 14,
+  backgroundColor: colors.background,
+},
+
+advancedTitle: {
+  color: colors.text,
+  fontSize: 13,
+  fontWeight: '900',
+},
+
+advancedSubtitle: {
+  color: colors.textMuted,
+  fontSize: 10,
+  marginTop: 2,
+},
+
+advancedChevron: {
+  color: colors.primary,
+  fontSize: 11,
+  fontWeight: '900',
+},
+
+advancedPanel: {
+  marginTop: -4,
+},
+
+dateInputLabel: {
+  color: colors.textMuted,
+  fontSize: 10,
+  fontWeight: '700',
+  marginBottom: 6,
+},
+
+pickerButton: {
+  justifyContent: 'center',
+},
+
+pickerButtonText: {
+  color: colors.text,
+  fontSize: 14,
+  fontWeight: '600',
+},
+
+pickerPlaceholder: {
+  color: colors.textMuted,
+  fontSize: 14,
 },
 
   });
