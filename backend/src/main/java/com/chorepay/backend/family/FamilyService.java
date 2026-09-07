@@ -161,7 +161,18 @@ public FamilyMember approveJoinRequest(
         throw new ForbiddenException(
                 "Children cannot approve join requests."
         );
+
+        
     }
+
+    if (
+        request.getRequestedRole() == FamilyRole.PARENT
+        && reviewerMembership.getRole() != FamilyRole.OWNER
+) {
+    throw new ForbiddenException(
+            "Only the family owner can approve a parent."
+    );
+}
 
     /*
      * Only the OWNER can add another PARENT.
@@ -274,6 +285,15 @@ public FamilyJoinRequest rejectJoinRequest(
                 "Children cannot reject join requests."
         );
     }
+
+    if (
+        request.getRequestedRole() == FamilyRole.PARENT
+        && reviewerMembership.getRole() != FamilyRole.OWNER
+) {
+    throw new ForbiddenException(
+            "Only the family owner can reject a parent."
+    );
+}
 
     /*
      * Only the owner can reject somebody

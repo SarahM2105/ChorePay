@@ -159,6 +159,19 @@ const [
  * OWN JOIN REQUEST
  */
 
+  /*
+ * CURRENT FAMILY ROLE
+ */
+
+const currentFamilyMember =
+  familyMembers.find(
+    (member) =>
+      member.userId === user?.id
+  );
+
+const isFamilyOwner =
+  currentFamilyMember?.role === 'OWNER';
+
 const loadFamilyState =
   useCallback(async () => {
     if (!token) {
@@ -802,8 +815,7 @@ const handleCancelMyRequest =
 ) : (
   <>
     {/* STATS */}
-            <>
-              {/* STATS */}
+           
 
               <View
                 style={[
@@ -1581,12 +1593,12 @@ const handleCancelMyRequest =
 
                           <View
                             style={
-                              styles.roleBadge
+                              styles.memberRoleBadge
                             }
                           >
                             <Text
                               style={
-                                styles.roleText
+                                styles.memberRoleText
                               }
                             >
                               {member.role ===
@@ -1689,6 +1701,9 @@ const handleCancelMyRequest =
                         const isProcessing =
                           processingRequestId ===
                           request.requestId;
+                          const canReviewRequest =
+                        request.requestedRole === 'CHILD' ||
+                        isFamilyOwner;
 
                         return (
                           <View
@@ -1750,57 +1765,45 @@ const handleCancelMyRequest =
                               </View>
                             </View>
 
-                            <View
-                              style={
-                                styles.requestActions
-                              }
-                            >
-                              <Pressable
-                                disabled={
-                                  isProcessing
-                                }
-                                style={
-                                  styles.approveButton
-                                }
-                                onPress={() =>
-                                  handleApprove(
-                                    request.requestId
-                                  )
-                                }
-                              >
-                                <Text
-                                  style={
-                                    styles.approveText
-                                  }
-                                >
-                                  {isProcessing
-                                    ? 'Working...'
-                                    : 'Approve'}
-                                </Text>
-                              </Pressable>
+                            {canReviewRequest ? (
+  <View style={styles.requestActions}>
+    <Pressable
+      disabled={isProcessing}
+      style={styles.approveButton}
+      onPress={() =>
+        handleApprove(
+          request.requestId
+        )
+      }
+    >
+      <Text style={styles.approveText}>
+        {isProcessing
+          ? 'Working...'
+          : 'Approve'}
+      </Text>
+    </Pressable>
 
-                              <Pressable
-                                disabled={
-                                  isProcessing
-                                }
-                                style={
-                                  styles.rejectButton
-                                }
-                                onPress={() =>
-                                  handleReject(
-                                    request.requestId
-                                  )
-                                }
-                              >
-                                <Text
-                                  style={
-                                    styles.rejectText
-                                  }
-                                >
-                                  Reject
-                                </Text>
-                              </Pressable>
-                            </View>
+    <Pressable
+      disabled={isProcessing}
+      style={styles.rejectButton}
+      onPress={() =>
+        handleReject(
+          request.requestId
+        )
+      }
+    >
+      <Text style={styles.rejectText}>
+        Reject
+      </Text>
+    </Pressable>
+  </View>
+) : (
+  <Text style={styles.requestMeta}>
+    Owner approval required
+  </Text>
+)}
+
+                            
                           </View>
                         );
                       }

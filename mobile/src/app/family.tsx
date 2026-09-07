@@ -897,30 +897,6 @@ export default function FamilyScreen() {
     </Pressable>
   </>
 )}
-                                <Pressable
-                                  disabled={
-                                    processing
-                                  }
-                                  style={
-                                    styles.approveButton
-                                  }
-                                  onPress={() =>
-                                    handleApprove(
-                                      request
-                                    )
-                                  }
-                                >
-                                  <Text
-                                    style={
-                                      styles.approveText
-                                    }
-                                  >
-                                    {processing
-                                      ? 'Working...'
-                                      : 'Approve'}
-                                  </Text>
-                                </Pressable>
-                              )}
                             </View>
                           </View>
                         );
