@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 
 import {
   useEffect,
   useState,
+  useCallback,
 } from 'react';
 
 import {
@@ -32,6 +33,8 @@ import {
   getMyFamily,
   JoinRequest,
   rejectJoinRequest,
+  cancelJoinRequest,
+getMyLatestJoinRequest,
 } from '../services/family.service';
 
 import { commonStyles } from '../styles/common.styles';
@@ -63,6 +66,15 @@ export default function ParentDashboardScreen() {
 
   const [familyError, setFamilyError] =
     useState('');
+    const [
+  myJoinRequest,
+  setMyJoinRequest,
+] = useState<JoinRequest | null>(null);
+
+const [
+  cancellingMyRequest,
+  setCancellingMyRequest,
+] = useState(false);
 
   /*
    * FAMILY MEMBERS
@@ -143,39 +155,66 @@ export default function ParentDashboardScreen() {
         : 'Good evening';
 
   /*
-   * LOAD FAMILY
-   */
+ * LOAD FAMILY + THIS PARENT'S
+ * OWN JOIN REQUEST
+ */
 
-  useEffect(() => {
-    const loadFamily = async () => {
-      if (!token) {
+const loadFamilyState =
+  useCallback(async () => {
+    if (!token) {
+      return;
+    }
+
+    try {
+      setLoadingFamily(true);
+      setFamilyError('');
+
+      const familyResult =
+        await getMyFamily(token);
+
+      setFamily(familyResult);
+
+      /*
+       * They're already in a family.
+       */
+      if (familyResult) {
+        setMyJoinRequest(null);
         return;
       }
 
-      try {
-        setLoadingFamily(true);
-        setFamilyError('');
+      /*
+       * They're not in a family.
+       * Check if they have sent
+       * a join request.
+       */
+      const requestResult =
+        await getMyLatestJoinRequest(
+          token
+        );
 
-        const result =
-          await getMyFamily(token);
-
-        setFamily(result);
-      } catch (err) {
-        if (err instanceof Error) {
-          setFamilyError(err.message);
-        } else {
-          setFamilyError(
-            'Could not load your family.'
-          );
-        }
-      } finally {
-        setLoadingFamily(false);
+      setMyJoinRequest(
+        requestResult
+      );
+    } catch (err) {
+      if (err instanceof Error) {
+        setFamilyError(
+          err.message
+        );
+      } else {
+        setFamilyError(
+          'Could not load your family.'
+        );
       }
-    };
-
-    loadFamily();
+    } finally {
+      setLoadingFamily(false);
+    }
   }, [token]);
 
+useFocusEffect(
+  useCallback(() => {
+    loadFamilyState();
+  }, [loadFamilyState])
+);
   /*
    * LOAD FAMILY MEMBERS
    */
@@ -296,6 +335,41 @@ export default function ParentDashboardScreen() {
     loadAssignments();
   }, [family, token]);
 
+
+const handleCancelMyRequest =
+  async () => {
+    if (
+      !token ||
+      !myJoinRequest ||
+      myJoinRequest.status !== 'PENDING'
+    ) {
+      return;
+    }
+
+    try {
+      setCancellingMyRequest(true);
+      setFamilyError('');
+
+      await cancelJoinRequest(
+        myJoinRequest.requestId,
+        token
+      );
+
+      await loadFamilyState();
+    } catch (err) {
+      if (err instanceof Error) {
+        setFamilyError(err.message);
+      } else {
+        setFamilyError(
+          'Could not cancel your request.'
+        );
+      }
+    } finally {
+      setCancellingMyRequest(false);
+    }
+  };
+  
+  
   /*
    * LOGOUT
    */
@@ -305,6 +379,8 @@ export default function ParentDashboardScreen() {
 
     router.replace('/login');
   };
+
+
 
   /*
    * JOIN REQUEST APPROVAL
@@ -608,73 +684,124 @@ export default function ParentDashboardScreen() {
           ) : null}
 
           {!family ? (
-            /*
-             * NO FAMILY
-             */
+  myJoinRequest?.status === 'PENDING' ? (
+    /*
+     * WAITING FOR OWNER APPROVAL
+     */
 
-            <View
-              style={
-                styles.onboardingCard
-              }
-            >
-              <View
-                style={
-                  styles.onboardingIcon
-                }
-              >
-                <Ionicons
-                  name="people-outline"
-                  size={34}
-                  color="#6C5CE7"
-                />
-              </View>
+    <View style={styles.onboardingCard}>
+      <View style={styles.onboardingIcon}>
+        <Ionicons
+          name="time-outline"
+          size={34}
+          color="#6C5CE7"
+        />
+      </View>
 
-              <Text
-                style={
-                  styles.onboardingTitle
-                }
-              >
-                Create your family
-              </Text>
+      <Text style={styles.onboardingTitle}>
+        Request sent!
+      </Text>
 
-              <Text
-                style={
-                  styles.onboardingText
-                }
-              >
-                Start your ChorePay
-                family to assign chores,
-                invite children and
-                manage rewards from one
-                place.
-              </Text>
+      <Text style={styles.onboardingText}>
+        Your request has been sent to the
+        family owner. Once they approve you,
+        you'll be able to access the family.
+      </Text>
 
-              <Pressable
-                style={
-                  styles.createChoreButton
-                }
-                onPress={() =>
-                  router.push(
-                    '/create-family'
-                  )
-                }
-              >
-                <Ionicons
-                  name="add-circle-outline"
-                  size={20}
-                  color="#FFFFFF"
-                />
+      <Pressable
+        disabled={cancellingMyRequest}
+        style={styles.joinFamilyButton}
+        onPress={handleCancelMyRequest}
+      >
+        <Ionicons
+          name="close-circle-outline"
+          size={20}
+          color="#6C5CE7"
+        />
 
-                <Text
-                  style={
-                    styles.createChoreButtonText
-                  }
-                >
-                  Create family
-                </Text>
-              </Pressable>
-            </View>
-          ) : (
+        <Text
+          style={
+            styles.joinFamilyButtonText
+          }
+        >
+          {cancellingMyRequest
+            ? 'Cancelling...'
+            : 'Cancel request'}
+        </Text>
+      </Pressable>
+    </View>
+  ) : (
+    /*
+     * NO REQUEST YET
+     */
+
+    <View style={styles.onboardingCard}>
+      <View style={styles.onboardingIcon}>
+        <Ionicons
+          name="people-outline"
+          size={34}
+          color="#6C5CE7"
+        />
+      </View>
+
+      <Text style={styles.onboardingTitle}>
+        Set up your family
+      </Text>
+
+      <Text style={styles.onboardingText}>
+        Create a new ChorePay family or
+        join an existing one using their
+        family code.
+      </Text>
+
+      <View style={styles.onboardingActions}>
+        <Pressable
+          style={styles.createChoreButton}
+          onPress={() =>
+            router.push('/create-family')
+          }
+        >
+          <Ionicons
+            name="add-circle-outline"
+            size={20}
+            color="#FFFFFF"
+          />
+
+          <Text
+            style={
+              styles.createChoreButtonText
+            }
+          >
+            Create a family
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.joinFamilyButton}
+          onPress={() =>
+            router.push('/join-family')
+          }
+        >
+          <Ionicons
+            name="key-outline"
+            size={20}
+            color="#6C5CE7"
+          />
+
+          <Text
+            style={
+              styles.joinFamilyButtonText
+            }
+          >
+            Join an existing family
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  )
+) : (
+  <>
+    {/* STATS */}
             <>
               {/* STATS */}
 

@@ -699,4 +699,29 @@ choreRewardText: {
   fontSize: 11,
   fontWeight: '800',
 },
+
+onboardingActions: {
+  width: '100%',
+  gap: 10,
+  marginTop: 8,
+},
+
+joinFamilyButton: {
+  minHeight: 50,
+  borderRadius: 14,
+  borderWidth: 1.5,
+  borderColor: colors.primary,
+  backgroundColor: colors.white,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 8,
+  paddingHorizontal: 18,
+},
+
+joinFamilyButtonText: {
+  color: colors.primary,
+  fontSize: 13,
+  fontWeight: '900',
+},
   });

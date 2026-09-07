@@ -10,121 +10,188 @@ import {
 
 import { useAuth } from '../context/AuthContext';
 
-import { requestToJoinFamily } from '../services/family.service';
+import {
+  requestToJoinFamily,
+} from '../services/family.service';
 
-import { commonStyles } from '../styles/common.styles';
+import {
+  commonStyles,
+} from '../styles/common.styles';
 
-import { familyOnboardingStyles } from '../styles/screens/family-onboarding.styles';
+import {
+  familyOnboardingStyles,
+} from '../styles/screens/family-onboarding.styles';
 
 export default function JoinFamilyScreen() {
-  const { token } = useAuth();
+  const {
+    token,
+    user,
+  } = useAuth();
 
-  const [joinCode, setJoinCode] =
-    useState('');
+  const isParent =
+    user?.userType === 'PARENT';
 
-  const [error, setError] =
-    useState('');
+  const [
+    joinCode,
+    setJoinCode,
+  ] = useState('');
 
-  const [loading, setLoading] =
-    useState(false);
+  const [
+    error,
+    setError,
+  ] = useState('');
 
-  const [requestSent, setRequestSent] =
-    useState(false);
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
-  const handleJoinFamily = async () => {
-    setError('');
+  const [
+    requestSent,
+    setRequestSent,
+  ] = useState(false);
 
-    const normalizedCode =
-      joinCode.trim().toUpperCase();
+  const handleJoinFamily =
+    async () => {
+      setError('');
 
-    if (!normalizedCode) {
-      setError(
-        'Please enter a family join code.'
-      );
+      const normalizedCode =
+        joinCode
+          .trim()
+          .toUpperCase();
 
-      return;
-    }
-
-    if (normalizedCode.length !== 8) {
-      setError(
-        'Join code must be 8 characters.'
-      );
-
-      return;
-    }
-
-    if (!token) {
-      setError(
-        'Your session has expired. Please log in again.'
-      );
-
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      await requestToJoinFamily(
-        normalizedCode,
-        token
-      );
-
-      setRequestSent(true);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
+      if (!normalizedCode) {
         setError(
-          'Something went wrong.'
+          'Please enter a family join code.'
+        );
+
+        return;
+      }
+
+      if (
+        normalizedCode.length !== 8
+      ) {
+        setError(
+          'Join code must be 8 characters.'
+        );
+
+        return;
+      }
+
+      if (!token) {
+        setError(
+          'Your session has expired. Please log in again.'
+        );
+
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        await requestToJoinFamily(
+          normalizedCode,
+          token
+        );
+
+        setRequestSent(true);
+      } catch (err) {
+        if (
+          err instanceof Error
+        ) {
+          setError(
+            err.message
+          );
+        } else {
+          setError(
+            'Something went wrong.'
+          );
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+  const handleBackToDashboard =
+    () => {
+      if (isParent) {
+        router.replace(
+          '/parent-dashboard'
+        );
+      } else {
+        router.replace(
+          '/child-dashboard'
         );
       }
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
   return (
-    <View style={commonStyles.centeredScreen}>
+    <View
+      style={
+        commonStyles.centeredScreen
+      }
+    >
       <View
         style={
           familyOnboardingStyles.content
         }
       >
+        {/* BACK */}
+
         <Pressable
           style={
             familyOnboardingStyles.backButton
           }
-          onPress={() => router.back()}
+          onPress={() =>
+            router.back()
+          }
         >
-          <Text style={commonStyles.linkText}>
+          <Text
+            style={
+              commonStyles.linkText
+            }
+          >
             ← Back
           </Text>
         </Pressable>
 
+        {/* LOGO */}
+
         <Text
-          style={familyOnboardingStyles.logo}
+          style={
+            familyOnboardingStyles.logo
+          }
         >
           ChorePay
         </Text>
 
         {!requestSent ? (
           <>
+            {/* TITLE */}
+
             <Text
               style={
                 familyOnboardingStyles.title
               }
             >
-              Join your family
+              {isParent
+                ? 'Join an existing family'
+                : 'Join your family'}
             </Text>
+
+            {/* SUBTITLE */}
 
             <Text
               style={
                 familyOnboardingStyles.subtitle
               }
             >
-              Ask your parent for the family
-              join code and enter it below.
+              {isParent
+                ? 'Enter the family join code shared by the family owner.'
+                : 'Ask a parent for your family join code and enter it below.'}
             </Text>
+
+            {/* FORM */}
 
             <View
               style={
@@ -141,9 +208,15 @@ export default function JoinFamilyScreen() {
                 </Text>
 
                 <TextInput
-                  style={commonStyles.input}
-                  value={joinCode}
-                  onChangeText={(value) =>
+                  style={
+                    commonStyles.input
+                  }
+                  value={
+                    joinCode
+                  }
+                  onChangeText={(
+                    value
+                  ) =>
                     setJoinCode(
                       value.toUpperCase()
                     )
@@ -159,30 +232,42 @@ export default function JoinFamilyScreen() {
                     familyOnboardingStyles.helperText
                   }
                 >
-                  A parent needs to approve your
-                  request before you become part
-                  of the family.
+                  {isParent
+                    ? 'The family owner needs to approve your request before you can join as a parent.'
+                    : 'A parent needs to approve your request before you become part of the family.'}
                 </Text>
               </View>
             </View>
 
+            {/* ERROR */}
+
             {error ? (
               <Text
-                style={commonStyles.errorText}
+                style={
+                  commonStyles.errorText
+                }
               >
                 {error}
               </Text>
             ) : null}
 
+            {/* SUBMIT */}
+
             <Pressable
-              disabled={loading}
+              disabled={
+                loading
+              }
               style={[
                 commonStyles.primaryButton,
+
                 familyOnboardingStyles.submitButton,
+
                 loading &&
                   commonStyles.loadingButton,
               ]}
-              onPress={handleJoinFamily}
+              onPress={
+                handleJoinFamily
+              }
             >
               <Text
                 style={
@@ -196,6 +281,8 @@ export default function JoinFamilyScreen() {
             </Pressable>
           </>
         ) : (
+          /* SUCCESS */
+
           <View
             style={
               familyOnboardingStyles.successCard
@@ -222,17 +309,17 @@ export default function JoinFamilyScreen() {
                 familyOnboardingStyles.successText
               }
             >
-              Your request has been sent to the
-              family. A parent needs to approve
-              it before you can join.
+              {isParent
+                ? 'Your request has been sent to the family owner. Once they approve it, you will join the family as a parent.'
+                : 'Your request has been sent to the family. A parent needs to approve it before you can join.'}
             </Text>
 
             <Pressable
-              style={commonStyles.primaryButton}
-              onPress={() =>
-                router.replace(
-                  '/child-dashboard'
-                )
+              style={
+                commonStyles.primaryButton
+              }
+              onPress={
+                handleBackToDashboard
               }
             >
               <Text
@@ -248,4 +335,4 @@ export default function JoinFamilyScreen() {
       </View>
     </View>
   );
-}
+}   
