@@ -27,6 +27,7 @@ import {
   JoinRequest,
   rejectJoinRequest,
   removeParent,
+  transferOwnership,
 } from '../services/family.service';
 
 import {
@@ -72,6 +73,11 @@ export default function FamilyScreen() {
   const [
   removingParentId,
   setRemovingParentId,
+] = useState<string | null>(null);
+
+const [
+  transferringOwnerId,
+  setTransferringOwnerId,
 ] = useState<string | null>(null);
 
   const loadFamilyPage = async () => {
@@ -245,6 +251,36 @@ export default function FamilyScreen() {
     }
   } finally {
     setRemovingParentId(null);
+  }
+};
+
+const handleTransferOwnership = async (
+  userId: string
+) => {
+  if (!token) {
+    return;
+  }
+
+  try {
+    setTransferringOwnerId(userId);
+    setError('');
+
+    await transferOwnership(
+      userId,
+      token
+    );
+
+    await loadFamilyPage();
+  } catch (err) {
+    if (err instanceof Error) {
+      setError(err.message);
+    } else {
+      setError(
+        'Could not transfer ownership.'
+      );
+    }
+  } finally {
+    setTransferringOwnerId(null);
   }
 };
 
@@ -595,6 +631,11 @@ export default function FamilyScreen() {
                         member.role === 'PARENT' &&
                         !isYou;
 
+                        const canTransferOwnership =
+                        isOwner &&
+                        member.role === 'PARENT' &&
+                        !isYou;
+
                       return (
                         <View
                           key={
@@ -695,6 +736,34 @@ export default function FamilyScreen() {
                               )}
                             </Text>
                           </View>
+
+                          {canTransferOwnership && (
+                            <Pressable
+                              disabled={
+                                transferringOwnerId ===
+                                member.userId
+                              }
+                              style={
+                                styles.transferOwnerButton
+                              }
+                              onPress={() =>
+                                handleTransferOwnership(
+                                  member.userId
+                                )
+                              }
+                            >
+                              <Text
+                                style={
+                                  styles.transferOwnerText
+                                }
+                              >
+                                {transferringOwnerId ===
+                                member.userId
+                                  ? 'Transferring...'
+                                  : 'Make owner'}
+                              </Text>
+                            </Pressable>
+                          )}
                           {canRemoveParent && (
   <Pressable
     disabled={

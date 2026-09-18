@@ -466,6 +466,78 @@ public void removeParent(
     );
 }
 
+@Transactional
+public void transferOwnership(
+        User owner,
+        UUID newOwnerUserId
+) {
+    FamilyMember ownerMembership =
+            familyMemberRepository.findByUser(owner)
+                    .orElseThrow(() ->
+                            new NotFoundException(
+                                    "You do not belong to a family."
+                            )
+                    );
+
+    if (ownerMembership.getRole() != FamilyRole.OWNER) {
+        throw new ForbiddenException(
+                "Only the family owner can transfer ownership."
+        );
+    }
+
+    User newOwnerUser =
+            userRepository.findById(newOwnerUserId)
+                    .orElseThrow(() ->
+                            new NotFoundException(
+                                    "Parent not found."
+                            )
+                    );
+
+    FamilyMember newOwnerMembership =
+            familyMemberRepository.findByUser(newOwnerUser)
+                    .orElseThrow(() ->
+                            new NotFoundException(
+                                    "Parent does not belong to a family."
+                            )
+                    );
+
+    if (!ownerMembership
+            .getFamily()
+            .getId()
+            .equals(
+                    newOwnerMembership
+                            .getFamily()
+                            .getId()
+            )) {
+
+        throw new ForbiddenException(
+                "You cannot transfer ownership to a parent from another family."
+        );
+    }
+
+    if (newOwnerMembership.getRole() != FamilyRole.PARENT) {
+        throw new ForbiddenException(
+                "Ownership can only be transferred to a parent."
+        );
+    }
+
+    ownerMembership.setRole(
+            FamilyRole.PARENT
+    );
+
+    newOwnerMembership.setRole(
+            FamilyRole.OWNER
+    );
+
+    familyMemberRepository.save(
+            ownerMembership
+    );
+
+    familyMemberRepository.save(
+            newOwnerMembership
+    );
+}
+
     private String generateUniqueJoinCode() {
 
         String code;

@@ -1087,4 +1087,269 @@ void removeParent_shouldRejectWhenTargetIsChild() {
     );
 }
 
+@Test
+void transferOwnership_shouldTransferOwnerRoleToParent() {
+
+    UUID familyId =
+            UUID.randomUUID();
+
+    UUID newOwnerUserId =
+            UUID.randomUUID();
+
+    User owner =
+            mock(User.class);
+
+    User newOwner =
+            mock(User.class);
+
+    Family family =
+            mock(Family.class);
+
+    when(family.getId())
+            .thenReturn(familyId);
+
+    FamilyMember ownerMembership =
+            new FamilyMember();
+
+    ownerMembership.setFamily(family);
+    ownerMembership.setUser(owner);
+    ownerMembership.setRole(
+            FamilyRole.OWNER
+    );
+
+    FamilyMember newOwnerMembership =
+            new FamilyMember();
+
+    newOwnerMembership.setFamily(family);
+    newOwnerMembership.setUser(newOwner);
+    newOwnerMembership.setRole(
+            FamilyRole.PARENT
+    );
+
+    when(familyMemberRepository
+            .findByUser(owner))
+            .thenReturn(
+                    Optional.of(
+                            ownerMembership
+                    )
+            );
+
+    when(userRepository
+            .findById(newOwnerUserId))
+            .thenReturn(
+                    Optional.of(newOwner)
+            );
+
+    when(familyMemberRepository
+            .findByUser(newOwner))
+            .thenReturn(
+                    Optional.of(
+                            newOwnerMembership
+                    )
+            );
+
+    familyService.transferOwnership(
+            owner,
+            newOwnerUserId
+    );
+
+    assertEquals(
+            FamilyRole.PARENT,
+            ownerMembership.getRole()
+    );
+
+    assertEquals(
+            FamilyRole.OWNER,
+            newOwnerMembership.getRole()
+    );
+
+    verify(familyMemberRepository)
+            .save(ownerMembership);
+
+    verify(familyMemberRepository)
+            .save(newOwnerMembership);
+}
+
+@Test
+void transferOwnership_shouldRejectParentFromAnotherFamily() {
+
+    UUID ownerFamilyId =
+            UUID.randomUUID();
+
+    UUID otherFamilyId =
+            UUID.randomUUID();
+
+    UUID newOwnerUserId =
+            UUID.randomUUID();
+
+    User owner =
+            mock(User.class);
+
+    User otherParent =
+            mock(User.class);
+
+    Family ownerFamily =
+            mock(Family.class);
+
+    Family otherFamily =
+            mock(Family.class);
+
+    when(ownerFamily.getId())
+            .thenReturn(ownerFamilyId);
+
+    when(otherFamily.getId())
+            .thenReturn(otherFamilyId);
+
+    FamilyMember ownerMembership =
+            new FamilyMember();
+
+    ownerMembership.setFamily(ownerFamily);
+    ownerMembership.setUser(owner);
+    ownerMembership.setRole(
+            FamilyRole.OWNER
+    );
+
+    FamilyMember otherParentMembership =
+            new FamilyMember();
+
+    otherParentMembership.setFamily(
+            otherFamily
+    );
+
+    otherParentMembership.setUser(
+            otherParent
+    );
+
+    otherParentMembership.setRole(
+            FamilyRole.PARENT
+    );
+
+    when(familyMemberRepository
+            .findByUser(owner))
+            .thenReturn(
+                    Optional.of(
+                            ownerMembership
+                    )
+            );
+
+    when(userRepository
+            .findById(newOwnerUserId))
+            .thenReturn(
+                    Optional.of(otherParent)
+            );
+
+    when(familyMemberRepository
+            .findByUser(otherParent))
+            .thenReturn(
+                    Optional.of(
+                            otherParentMembership
+                    )
+            );
+
+    ForbiddenException exception =
+            assertThrows(
+                    ForbiddenException.class,
+                    () ->
+                            familyService.transferOwnership(
+                                    owner,
+                                    newOwnerUserId
+                            )
+            );
+
+    assertEquals(
+            "You cannot transfer ownership to a parent from another family.",
+            exception.getMessage()
+    );
+
+    verify(
+            familyMemberRepository,
+            never()
+    ).save(
+            any(FamilyMember.class)
+    );
+}
+
+@Test
+void transferOwnership_shouldRejectWhenTargetIsChild() {
+
+    UUID familyId =
+            UUID.randomUUID();
+
+    UUID childUserId =
+            UUID.randomUUID();
+
+    User owner =
+            mock(User.class);
+
+    User child =
+            mock(User.class);
+
+    Family family =
+            mock(Family.class);
+
+    when(family.getId())
+            .thenReturn(familyId);
+
+    FamilyMember ownerMembership =
+            new FamilyMember();
+
+    ownerMembership.setFamily(family);
+    ownerMembership.setUser(owner);
+    ownerMembership.setRole(
+            FamilyRole.OWNER
+    );
+
+    FamilyMember childMembership =
+            new FamilyMember();
+
+    childMembership.setFamily(family);
+    childMembership.setUser(child);
+    childMembership.setRole(
+            FamilyRole.CHILD
+    );
+
+    when(familyMemberRepository
+            .findByUser(owner))
+            .thenReturn(
+                    Optional.of(
+                            ownerMembership
+                    )
+            );
+
+    when(userRepository
+            .findById(childUserId))
+            .thenReturn(
+                    Optional.of(child)
+            );
+
+    when(familyMemberRepository
+            .findByUser(child))
+            .thenReturn(
+                    Optional.of(
+                            childMembership
+                    )
+            );
+
+    ForbiddenException exception =
+            assertThrows(
+                    ForbiddenException.class,
+                    () ->
+                            familyService.transferOwnership(
+                                    owner,
+                                    childUserId
+                            )
+            );
+
+    assertEquals(
+            "Ownership can only be transferred to a parent.",
+            exception.getMessage()
+    );
+
+    verify(
+            familyMemberRepository,
+            never()
+    ).save(
+            any(FamilyMember.class)
+    );
+}
 }

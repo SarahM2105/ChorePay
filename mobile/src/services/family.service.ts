@@ -311,3 +311,28 @@ export async function removeParent(
     throw new Error(message);
   }
 }
+
+export async function transferOwnership(
+  userId: string,
+  token: string
+): Promise<void> {
+  const response = await fetch(
+    `${API_URL}/api/families/members/${userId}/transfer-ownership`,
+    {
+      method: 'POST',
+
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const message = await getErrorMessage(
+      response,
+      'Could not transfer ownership.'
+    );
+
+    throw new Error(message);
+  }
+}

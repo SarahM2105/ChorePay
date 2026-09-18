@@ -153,5 +153,17 @@ public ResponseEntity<Void> removeParent(
 
     return ResponseEntity.noContent().build();
 }
+@PostMapping("/members/{userId}/transfer-ownership")
+public ResponseEntity<Void> transferOwnership(
+        @AuthenticationPrincipal User user,
+        @PathVariable UUID userId
+) {
+    familyService.transferOwnership(
+            user,
+            userId
+    );
+
+    return ResponseEntity.ok().build();
+}
 
 }

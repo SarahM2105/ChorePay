@@ -586,4 +586,18 @@ removeParentText: {
       color: colors.white,
       fontWeight: '900',
     },
+
+    transferOwnerButton: {
+  borderWidth: 1,
+  borderColor: colors.primary,
+  borderRadius: 10,
+  paddingHorizontal: 10,
+  paddingVertical: 7,
+},
+
+transferOwnerText: {
+  color: colors.primary,
+  fontSize: 10,
+  fontWeight: '800',
+},
   });
