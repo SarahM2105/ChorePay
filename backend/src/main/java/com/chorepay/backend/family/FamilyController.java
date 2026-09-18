@@ -140,4 +140,18 @@ public ResponseEntity<JoinRequestResponse> getMyLatestJoinRequest(
 
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/members/{userId}")
+public ResponseEntity<Void> removeParent(
+        @AuthenticationPrincipal User user,
+        @PathVariable UUID userId
+) {
+    familyService.removeParent(
+            user,
+            userId
+    );
+
+    return ResponseEntity.noContent().build();
+}
+
 }

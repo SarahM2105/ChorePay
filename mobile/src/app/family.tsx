@@ -26,6 +26,7 @@ import {
   getMyFamily,
   JoinRequest,
   rejectJoinRequest,
+  removeParent,
 } from '../services/family.service';
 
 import {
@@ -67,6 +68,11 @@ export default function FamilyScreen() {
     processingRequestId,
     setProcessingRequestId,
   ] = useState<string | null>(null);
+
+  const [
+  removingParentId,
+  setRemovingParentId,
+] = useState<string | null>(null);
 
   const loadFamilyPage = async () => {
     if (!token) {
@@ -211,6 +217,36 @@ export default function FamilyScreen() {
       setProcessingRequestId(null);
     }
   };
+
+  const handleRemoveParent = async (
+  userId: string
+) => {
+  if (!token) {
+    return;
+  }
+
+  try {
+    setRemovingParentId(userId);
+    setError('');
+
+    await removeParent(
+      userId,
+      token
+    );
+
+    await loadFamilyPage();
+  } catch (err) {
+    if (err instanceof Error) {
+      setError(err.message);
+    } else {
+      setError(
+        'Could not remove parent.'
+      );
+    }
+  } finally {
+    setRemovingParentId(null);
+  }
+};
 
   const getRoleLabel = (
     role: FamilyMember['role']
@@ -554,6 +590,11 @@ export default function FamilyScreen() {
                         member.userId ===
                         user?.id;
 
+                        const canRemoveParent =
+                        isOwner &&
+                        member.role === 'PARENT' &&
+                        !isYou;
+
                       return (
                         <View
                           key={
@@ -654,6 +695,33 @@ export default function FamilyScreen() {
                               )}
                             </Text>
                           </View>
+                          {canRemoveParent && (
+  <Pressable
+    disabled={
+      removingParentId ===
+      member.userId
+    }
+    style={
+      styles.removeParentButton
+    }
+    onPress={() =>
+      handleRemoveParent(
+        member.userId
+      )
+    }
+  >
+    <Text
+      style={
+        styles.removeParentText
+      }
+    >
+      {removingParentId ===
+      member.userId
+        ? 'Removing...'
+        : 'Remove'}
+    </Text>
+  </Pressable>
+)}
                         </View>
                       );
                     }

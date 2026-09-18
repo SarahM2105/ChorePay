@@ -282,5 +282,32 @@ export async function getFamilyMembers(
     throw new Error(message);
   }
 
+  
+
   return response.json();
+}
+
+export async function removeParent(
+  userId: string,
+  token: string
+): Promise<void> {
+  const response = await fetch(
+    `${API_URL}/api/families/members/${userId}`,
+    {
+      method: 'DELETE',
+
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const message = await getErrorMessage(
+      response,
+      'Could not remove parent.'
+    );
+
+    throw new Error(message);
+  }
 }

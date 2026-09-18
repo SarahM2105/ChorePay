@@ -348,6 +348,20 @@ export const familyStyles =
       color: colors.primary,
     },
 
+    removeParentButton: {
+  borderWidth: 1,
+  borderColor: colors.red,
+  borderRadius: 10,
+  paddingHorizontal: 10,
+  paddingVertical: 7,
+},
+
+removeParentText: {
+  color: colors.red,
+  fontSize: 10,
+  fontWeight: '800',
+},
+
     requestList: {
       gap: 12,
     },

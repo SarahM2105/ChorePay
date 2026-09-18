@@ -165,15 +165,6 @@ public FamilyMember approveJoinRequest(
         
     }
 
-    if (
-        request.getRequestedRole() == FamilyRole.PARENT
-        && reviewerMembership.getRole() != FamilyRole.OWNER
-) {
-    throw new ForbiddenException(
-            "Only the family owner can approve a parent."
-    );
-}
-
     /*
      * Only the OWNER can add another PARENT.
      *
@@ -286,14 +277,6 @@ public FamilyJoinRequest rejectJoinRequest(
         );
     }
 
-    if (
-        request.getRequestedRole() == FamilyRole.PARENT
-        && reviewerMembership.getRole() != FamilyRole.OWNER
-) {
-    throw new ForbiddenException(
-            "Only the family owner can reject a parent."
-    );
-}
 
     /*
      * Only the owner can reject somebody
@@ -422,6 +405,67 @@ public FamilyJoinRequest cancelJoinRequest(
 
     return familyJoinRequestRepository.save(request);
 }
+
+@Transactional
+public void removeParent(
+        User owner,
+        UUID parentUserId
+) {
+    FamilyMember ownerMembership =
+            familyMemberRepository.findByUser(owner)
+                    .orElseThrow(() ->
+                            new NotFoundException(
+                                    "You do not belong to a family."
+                            )
+                    );
+
+    if (ownerMembership.getRole() != FamilyRole.OWNER) {
+        throw new ForbiddenException(
+                "Only the family owner can remove a parent."
+        );
+    }
+
+    User parentUser =
+            userRepository.findById(parentUserId)
+                    .orElseThrow(() ->
+                            new NotFoundException(
+                                    "Parent not found."
+                            )
+                    );
+
+    FamilyMember parentMembership =
+            familyMemberRepository.findByUser(parentUser)
+                    .orElseThrow(() ->
+                            new NotFoundException(
+                                    "Parent does not belong to a family."
+                            )
+                    );
+
+    if (!ownerMembership
+            .getFamily()
+            .getId()
+            .equals(
+                    parentMembership
+                            .getFamily()
+                            .getId()
+            )) {
+
+        throw new ForbiddenException(
+                "You cannot remove a parent from another family."
+        );
+    }
+
+    if (parentMembership.getRole() != FamilyRole.PARENT) {
+        throw new ForbiddenException(
+                "This member is not a removable parent."
+        );
+    }
+
+    familyMemberRepository.delete(
+            parentMembership
+    );
+}
+
     private String generateUniqueJoinCode() {
 
         String code;

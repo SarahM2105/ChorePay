@@ -714,5 +714,377 @@ void rejectJoinRequest_shouldRejectPendingRequest() {
             any(FamilyMember.class)
     );
 }
+@Test
+void removeParent_shouldAllowOwnerToRemoveParent() {
+
+    UUID familyId =
+            UUID.randomUUID();
+
+    UUID parentUserId =
+            UUID.randomUUID();
+
+    User owner =
+            mock(User.class);
+
+    User parent =
+            mock(User.class);
+
+    Family family =
+            mock(Family.class);
+
+    when(family.getId())
+            .thenReturn(familyId);
+
+    FamilyMember ownerMembership =
+            new FamilyMember();
+
+    ownerMembership.setFamily(family);
+    ownerMembership.setUser(owner);
+    ownerMembership.setRole(
+            FamilyRole.OWNER
+    );
+
+    FamilyMember parentMembership =
+            new FamilyMember();
+
+    parentMembership.setFamily(family);
+    parentMembership.setUser(parent);
+    parentMembership.setRole(
+            FamilyRole.PARENT
+    );
+
+    when(familyMemberRepository
+            .findByUser(owner))
+            .thenReturn(
+                    Optional.of(
+                            ownerMembership
+                    )
+            );
+
+    when(userRepository
+            .findById(parentUserId))
+            .thenReturn(
+                    Optional.of(parent)
+            );
+
+    when(familyMemberRepository
+            .findByUser(parent))
+            .thenReturn(
+                    Optional.of(
+                            parentMembership
+                    )
+            );
+
+    familyService.removeParent(
+            owner,
+            parentUserId
+    );
+
+    verify(familyMemberRepository)
+            .delete(
+                    parentMembership
+            );
+}
+
+@Test
+void removeParent_shouldRejectWhenRequesterIsNotOwner() {
+
+    UUID parentUserId =
+            UUID.randomUUID();
+
+    User requester =
+            mock(User.class);
+
+    Family family =
+            mock(Family.class);
+
+    FamilyMember requesterMembership =
+            new FamilyMember();
+
+    requesterMembership.setFamily(family);
+    requesterMembership.setUser(requester);
+    requesterMembership.setRole(
+            FamilyRole.PARENT
+    );
+
+    when(familyMemberRepository
+            .findByUser(requester))
+            .thenReturn(
+                    Optional.of(
+                            requesterMembership
+                    )
+            );
+
+    ForbiddenException exception =
+            assertThrows(
+                    ForbiddenException.class,
+                    () ->
+                            familyService.removeParent(
+                                    requester,
+                                    parentUserId
+                            )
+            );
+
+    assertEquals(
+            "Only the family owner can remove a parent.",
+            exception.getMessage()
+    );
+
+    verify(
+            familyMemberRepository,
+            never()
+    ).delete(
+            any(FamilyMember.class)
+    );
+
+    verifyNoInteractions(
+            userRepository
+    );
+}
+
+@Test
+void removeParent_shouldRejectWhenOwnerTriesToRemoveSelf() {
+
+    UUID familyId =
+            UUID.randomUUID();
+
+    UUID ownerUserId =
+            UUID.randomUUID();
+
+    User owner =
+            mock(User.class);
+
+    Family family =
+            mock(Family.class);
+
+    when(family.getId())
+            .thenReturn(familyId);
+
+    FamilyMember ownerMembership =
+            new FamilyMember();
+
+    ownerMembership.setFamily(family);
+    ownerMembership.setUser(owner);
+    ownerMembership.setRole(
+            FamilyRole.OWNER
+    );
+
+    when(familyMemberRepository
+            .findByUser(owner))
+            .thenReturn(
+                    Optional.of(
+                            ownerMembership
+                    )
+            );
+
+    when(userRepository
+            .findById(ownerUserId))
+            .thenReturn(
+                    Optional.of(owner)
+            );
+
+    ForbiddenException exception =
+            assertThrows(
+                    ForbiddenException.class,
+                    () ->
+                            familyService.removeParent(
+                                    owner,
+                                    ownerUserId
+                            )
+            );
+
+    assertEquals(
+            "This member is not a removable parent.",
+            exception.getMessage()
+    );
+
+    verify(
+            familyMemberRepository,
+            never()
+    ).delete(
+            any(FamilyMember.class)
+    );
+}
+
+@Test
+void removeParent_shouldRejectParentFromAnotherFamily() {
+
+    UUID ownerFamilyId =
+            UUID.randomUUID();
+
+    UUID otherFamilyId =
+            UUID.randomUUID();
+
+    UUID parentUserId =
+            UUID.randomUUID();
+
+    User owner =
+            mock(User.class);
+
+    User parent =
+            mock(User.class);
+
+    Family ownerFamily =
+            mock(Family.class);
+
+    Family otherFamily =
+            mock(Family.class);
+
+    when(ownerFamily.getId())
+            .thenReturn(ownerFamilyId);
+
+    when(otherFamily.getId())
+            .thenReturn(otherFamilyId);
+
+    FamilyMember ownerMembership =
+            new FamilyMember();
+
+    ownerMembership.setFamily(
+            ownerFamily
+    );
+    ownerMembership.setUser(owner);
+    ownerMembership.setRole(
+            FamilyRole.OWNER
+    );
+
+    FamilyMember parentMembership =
+            new FamilyMember();
+
+    parentMembership.setFamily(
+            otherFamily
+    );
+    parentMembership.setUser(parent);
+    parentMembership.setRole(
+            FamilyRole.PARENT
+    );
+
+    when(familyMemberRepository
+            .findByUser(owner))
+            .thenReturn(
+                    Optional.of(
+                            ownerMembership
+                    )
+            );
+
+    when(userRepository
+            .findById(parentUserId))
+            .thenReturn(
+                    Optional.of(parent)
+            );
+
+    when(familyMemberRepository
+            .findByUser(parent))
+            .thenReturn(
+                    Optional.of(
+                            parentMembership
+                    )
+            );
+
+    ForbiddenException exception =
+            assertThrows(
+                    ForbiddenException.class,
+                    () ->
+                            familyService.removeParent(
+                                    owner,
+                                    parentUserId
+                            )
+            );
+
+    assertEquals(
+            "You cannot remove a parent from another family.",
+            exception.getMessage()
+    );
+
+    verify(
+            familyMemberRepository,
+            never()
+    ).delete(
+            any(FamilyMember.class)
+    );
+}
+
+@Test
+void removeParent_shouldRejectWhenTargetIsChild() {
+
+    UUID familyId =
+            UUID.randomUUID();
+
+    UUID childUserId =
+            UUID.randomUUID();
+
+    User owner =
+            mock(User.class);
+
+    User child =
+            mock(User.class);
+
+    Family family =
+            mock(Family.class);
+
+    when(family.getId())
+            .thenReturn(familyId);
+
+    FamilyMember ownerMembership =
+            new FamilyMember();
+
+    ownerMembership.setFamily(family);
+    ownerMembership.setUser(owner);
+    ownerMembership.setRole(
+            FamilyRole.OWNER
+    );
+
+    FamilyMember childMembership =
+            new FamilyMember();
+
+    childMembership.setFamily(family);
+    childMembership.setUser(child);
+    childMembership.setRole(
+            FamilyRole.CHILD
+    );
+
+    when(familyMemberRepository
+            .findByUser(owner))
+            .thenReturn(
+                    Optional.of(
+                            ownerMembership
+                    )
+            );
+
+    when(userRepository
+            .findById(childUserId))
+            .thenReturn(
+                    Optional.of(child)
+            );
+
+    when(familyMemberRepository
+            .findByUser(child))
+            .thenReturn(
+                    Optional.of(
+                            childMembership
+                    )
+            );
+
+    ForbiddenException exception =
+            assertThrows(
+                    ForbiddenException.class,
+                    () ->
+                            familyService.removeParent(
+                                    owner,
+                                    childUserId
+                            )
+            );
+
+    assertEquals(
+            "This member is not a removable parent.",
+            exception.getMessage()
+    );
+
+    verify(
+            familyMemberRepository,
+            never()
+    ).delete(
+            any(FamilyMember.class)
+    );
+}
 
 }
