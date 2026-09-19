@@ -10,6 +10,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 
@@ -28,6 +29,7 @@ import {
   rejectJoinRequest,
   removeParent,
   transferOwnership,
+  updateFamilyName,
 } from '../services/family.service';
 
 import {
@@ -79,6 +81,21 @@ const [
   transferringOwnerId,
   setTransferringOwnerId,
 ] = useState<string | null>(null);
+
+const [
+  editingFamilyName,
+  setEditingFamilyName,
+] = useState(false);
+
+const [
+  familyNameInput,
+  setFamilyNameInput,
+] = useState('');
+
+const [
+  savingFamilyName,
+  setSavingFamilyName,
+] = useState(false);
 
   const loadFamilyPage = async () => {
     if (!token) {
@@ -284,6 +301,40 @@ const handleTransferOwnership = async (
   }
 };
 
+const handleSaveFamilyName = async () => {
+  if (!token) {
+    return;
+  }
+
+  try {
+    setSavingFamilyName(true);
+    setError('');
+
+    const updatedFamily =
+      await updateFamilyName(
+        familyNameInput,
+        token
+      );
+
+    setFamily(updatedFamily);
+    setFamilyNameInput(
+      updatedFamily.name
+    );
+
+    setEditingFamilyName(false);
+  } catch (err) {
+    if (err instanceof Error) {
+      setError(err.message);
+    } else {
+      setError(
+        'Could not rename family.'
+      );
+    }
+  } finally {
+    setSavingFamilyName(false);
+  }
+};
+
   const getRoleLabel = (
     role: FamilyMember['role']
   ) => {
@@ -479,13 +530,38 @@ const handleTransferOwnership = async (
                       styles.familyHeroInfo
                     }
                   >
-                    <Text
-                      style={
-                        styles.familyName
-                      }
-                    >
-                      {family.name}
-                    </Text>
+                    <View style={styles.familyNameRow}>
+                      <Text
+                        style={
+                          styles.familyName
+                        }
+                      >
+                        {family.name}
+                      </Text>
+
+                      {isOwner && (
+                        <Pressable
+                          style={
+                            styles.editFamilyNameButton
+                          }
+                          onPress={() => {
+                            setFamilyNameInput(
+                              family.name
+                            );
+
+                            setEditingFamilyName(
+                              true
+                            );
+                          }}
+                        >
+                          <Ionicons
+                            name="pencil-outline"
+                            size={16}
+                            color="#6C5CE7"
+                          />
+                        </Pressable>
+                      )}
+                    </View>
 
                     <Text
                       style={
@@ -1046,11 +1122,12 @@ const handleTransferOwnership = async (
               {/* OWNER SETTINGS PLACEHOLDER */}
 
               {isOwner && (
-                <View
-                  style={
-                    styles.ownerSettings
-                  }
-                >
+                  <>
+                    <View
+                      style={
+                        styles.ownerSettings
+                      }
+                    >
                   <View
                     style={
                       styles.ownerSettingsIcon
@@ -1088,20 +1165,57 @@ const handleTransferOwnership = async (
                     </Text>
                   </View>
 
-                  <View
-                    style={
-                      styles.comingSoonBadge
-                    }
-                  >
-                    <Text
-                      style={
-                        styles.comingSoonText
-                      }
-                    >
-                      Next
-                    </Text>
-                  </View>
                 </View>
+                {editingFamilyName && (
+                    <View style={styles.renameCard}>
+                      <Text style={styles.renameLabel}>
+                        Family name
+                      </Text>
+
+                      <TextInput
+                        value={familyNameInput}
+                        onChangeText={setFamilyNameInput}
+                        maxLength={100}
+                        editable={!savingFamilyName}
+                        style={styles.renameInput}
+                        placeholder="Family name"
+                      />
+
+                      <View style={styles.renameActions}>
+                        <Pressable
+                          disabled={savingFamilyName}
+                          style={styles.renameCancelButton}
+                          onPress={() => {
+                            setEditingFamilyName(false);
+                            setFamilyNameInput(
+                              family.name
+                            );
+                          }}
+                        >
+                          <Text
+                            style={styles.renameCancelText}
+                          >
+                            Cancel
+                          </Text>
+                        </Pressable>
+
+                        <Pressable
+                          disabled={savingFamilyName}
+                          style={styles.renameSaveButton}
+                          onPress={handleSaveFamilyName}
+                        >
+                          <Text
+                            style={styles.renameSaveText}
+                          >
+                            {savingFamilyName
+                              ? 'Saving...'
+                              : 'Save name'}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    </View>
+                  )}
+                </>
               )}
             </>
           )}

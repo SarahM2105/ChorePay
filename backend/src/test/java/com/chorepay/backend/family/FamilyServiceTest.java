@@ -1352,4 +1352,204 @@ void transferOwnership_shouldRejectWhenTargetIsChild() {
             any(FamilyMember.class)
     );
 }
+
+@Test
+void updateFamilyName_shouldAllowOwnerToRenameFamily() {
+
+    User owner =
+            mock(User.class);
+
+    Family family =
+            new Family();
+
+    family.setName(
+            "Old Family"
+    );
+
+    FamilyMember ownerMembership =
+            new FamilyMember();
+
+    ownerMembership.setFamily(family);
+    ownerMembership.setUser(owner);
+    ownerMembership.setRole(
+            FamilyRole.OWNER
+    );
+
+    when(familyMemberRepository
+            .findByUser(owner))
+            .thenReturn(
+                    Optional.of(
+                            ownerMembership
+                    )
+            );
+
+    when(familyRepository
+            .save(family))
+            .thenReturn(family);
+
+    Family result =
+            familyService.updateFamilyName(
+                    owner,
+                    "  New Family Name  "
+            );
+
+    assertEquals(
+            "New Family Name",
+            result.getName()
+    );
+
+    verify(familyRepository)
+            .save(family);
+}
+
+@Test
+void updateFamilyName_shouldRejectWhenRequesterIsNotOwner() {
+
+    User parent =
+            mock(User.class);
+
+    Family family =
+            mock(Family.class);
+
+    FamilyMember parentMembership =
+            new FamilyMember();
+
+    parentMembership.setFamily(family);
+    parentMembership.setUser(parent);
+    parentMembership.setRole(
+            FamilyRole.PARENT
+    );
+
+    when(familyMemberRepository
+            .findByUser(parent))
+            .thenReturn(
+                    Optional.of(
+                            parentMembership
+                    )
+            );
+
+    ForbiddenException exception =
+            assertThrows(
+                    ForbiddenException.class,
+                    () ->
+                            familyService.updateFamilyName(
+                                    parent,
+                                    "New Family Name"
+                            )
+            );
+
+    assertEquals(
+            "Only the family owner can rename the family.",
+            exception.getMessage()
+    );
+
+    verify(
+            familyRepository,
+            never()
+    ).save(
+            any(Family.class)
+    );
+}
+
+@Test
+void updateFamilyName_shouldRejectBlankName() {
+
+    User owner =
+            mock(User.class);
+
+    Family family =
+            mock(Family.class);
+
+    FamilyMember ownerMembership =
+            new FamilyMember();
+
+    ownerMembership.setFamily(family);
+    ownerMembership.setUser(owner);
+    ownerMembership.setRole(
+            FamilyRole.OWNER
+    );
+
+    when(familyMemberRepository
+            .findByUser(owner))
+            .thenReturn(
+                    Optional.of(
+                            ownerMembership
+                    )
+            );
+
+    IllegalArgumentException exception =
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () ->
+                            familyService.updateFamilyName(
+                                    owner,
+                                    "   "
+                            )
+            );
+
+    assertEquals(
+            "Family name is required.",
+            exception.getMessage()
+    );
+
+    verify(
+            familyRepository,
+            never()
+    ).save(
+            any(Family.class)
+    );
+}
+
+@Test
+void updateFamilyName_shouldRejectNameOver100Characters() {
+
+    User owner =
+            mock(User.class);
+
+    Family family =
+            mock(Family.class);
+
+    FamilyMember ownerMembership =
+            new FamilyMember();
+
+    ownerMembership.setFamily(family);
+    ownerMembership.setUser(owner);
+    ownerMembership.setRole(
+            FamilyRole.OWNER
+    );
+
+    when(familyMemberRepository
+            .findByUser(owner))
+            .thenReturn(
+                    Optional.of(
+                            ownerMembership
+                    )
+            );
+
+    String longName =
+            "A".repeat(101);
+
+    IllegalArgumentException exception =
+            assertThrows(
+                    IllegalArgumentException.class,
+                    () ->
+                            familyService.updateFamilyName(
+                                    owner,
+                                    longName
+                            )
+            );
+
+    assertEquals(
+            "Family name must be 100 characters or fewer.",
+            exception.getMessage()
+    );
+
+    verify(
+            familyRepository,
+            never()
+    ).save(
+            any(Family.class)
+    );
+}
+
 }

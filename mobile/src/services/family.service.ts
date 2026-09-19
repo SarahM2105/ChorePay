@@ -336,3 +336,35 @@ export async function transferOwnership(
     throw new Error(message);
   }
 }
+
+export async function updateFamilyName(
+  name: string,
+  token: string
+): Promise<Family> {
+  const response = await fetch(
+    `${API_URL}/api/families/me/name`,
+    {
+      method: 'PATCH',
+
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+
+      body: JSON.stringify({
+        name,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const message = await getErrorMessage(
+      response,
+      'Could not rename family.'
+    );
+
+    throw new Error(message);
+  }
+
+  return response.json();
+}

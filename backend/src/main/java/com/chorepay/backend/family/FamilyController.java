@@ -166,4 +166,24 @@ public ResponseEntity<Void> transferOwnership(
     return ResponseEntity.ok().build();
 }
 
+@PatchMapping("/me/name")
+public ResponseEntity<FamilyResponse> updateFamilyName(
+        @AuthenticationPrincipal User user,
+        @Valid @RequestBody UpdateFamilyNameRequest request
+) {
+    Family family =
+            familyService.updateFamilyName(
+                    user,
+                    request.name()
+            );
+
+    return ResponseEntity.ok(
+            new FamilyResponse(
+                    family.getId(),
+                    family.getName(),
+                    family.getJoinCode()
+            )
+    );
+}
+
 }

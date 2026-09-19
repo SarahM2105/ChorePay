@@ -538,6 +538,50 @@ public void transferOwnership(
     );
 }
 
+
+@Transactional
+public Family updateFamilyName(
+        User owner,
+        String newName
+) {
+    FamilyMember ownerMembership =
+            familyMemberRepository.findByUser(owner)
+                    .orElseThrow(() ->
+                            new NotFoundException(
+                                    "You do not belong to a family."
+                            )
+                    );
+
+    if (ownerMembership.getRole() != FamilyRole.OWNER) {
+        throw new ForbiddenException(
+                "Only the family owner can rename the family."
+        );
+    }
+
+    String trimmedName =
+            newName == null
+                    ? ""
+                    : newName.trim();
+
+    if (trimmedName.isBlank()) {
+        throw new IllegalArgumentException(
+                "Family name is required."
+        );
+    }
+
+    if (trimmedName.length() > 100) {
+        throw new IllegalArgumentException(
+                "Family name must be 100 characters or fewer."
+        );
+    }
+
+    Family family =
+            ownerMembership.getFamily();
+
+    family.setName(trimmedName);
+
+    return familyRepository.save(family);
+}
     private String generateUniqueJoinCode() {
 
         String code;

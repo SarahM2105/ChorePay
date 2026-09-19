@@ -600,4 +600,79 @@ transferOwnerText: {
   fontSize: 10,
   fontWeight: '800',
 },
+
+renameCard: {
+  marginTop: 12,
+  padding: 16,
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 16,
+  backgroundColor: colors.white,
+},
+
+renameLabel: {
+  color: colors.text,
+  fontSize: 13,
+  fontWeight: '800',
+  marginBottom: 8,
+},
+
+renameInput: {
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 12,
+  paddingHorizontal: 12,
+  paddingVertical: 10,
+  color: colors.text,
+  backgroundColor: colors.background,
+},
+
+renameActions: {
+  flexDirection: 'row',
+  justifyContent: 'flex-end',
+  gap: 10,
+  marginTop: 12,
+},
+
+renameCancelButton: {
+  borderWidth: 1,
+  borderColor: colors.border,
+  borderRadius: 10,
+  paddingHorizontal: 12,
+  paddingVertical: 8,
+},
+
+renameCancelText: {
+  color: colors.textMuted,
+  fontSize: 11,
+  fontWeight: '800',
+},
+
+renameSaveButton: {
+  borderRadius: 10,
+  paddingHorizontal: 12,
+  paddingVertical: 8,
+  backgroundColor: colors.primary,
+},
+
+renameSaveText: {
+  color: colors.white,
+  fontSize: 11,
+  fontWeight: '800',
+},
+
+familyNameRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 8,
+},
+
+editFamilyNameButton: {
+  width: 30,
+  height: 30,
+  borderRadius: 10,
+  alignItems: 'center',
+  justifyContent: 'center',
+  backgroundColor: colors.primaryLight,
+},
   });
