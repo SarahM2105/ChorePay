@@ -28,6 +28,7 @@ import {
   JoinRequest,
   rejectJoinRequest,
   removeParent,
+  removeChild,
   transferOwnership,
   updateFamilyName,
 } from '../services/family.service';
@@ -268,6 +269,42 @@ const [
     }
   } finally {
     setRemovingParentId(null);
+  }
+};
+
+const [
+  removingChildId,
+  setRemovingChildId,
+] = useState<string | null>(null);
+
+
+const handleRemoveChild = async (
+  userId: string
+) => {
+  if (!token) {
+    return;
+  }
+
+  try {
+    setRemovingChildId(userId);
+    setError('');
+
+    await removeChild(
+      userId,
+      token
+    );
+
+    await loadFamilyPage();
+  } catch (err) {
+    if (err instanceof Error) {
+      setError(err.message);
+    } else {
+      setError(
+        'Could not remove child.'
+      );
+    }
+  } finally {
+    setRemovingChildId(null);
   }
 };
 
@@ -712,6 +749,13 @@ const handleSaveFamilyName = async () => {
                         member.role === 'PARENT' &&
                         !isYou;
 
+                        const canRemoveChild =
+                        (
+                          currentMember?.role === 'OWNER' ||
+                          currentMember?.role === 'PARENT'
+                        ) &&
+                        member.role === 'CHILD';
+
                       return (
                         <View
                           key={
@@ -840,7 +884,7 @@ const handleSaveFamilyName = async () => {
                               </Text>
                             </Pressable>
                           )}
-                          {canRemoveParent && (
+ {canRemoveParent && (
   <Pressable
     disabled={
       removingParentId ===
@@ -864,6 +908,34 @@ const handleSaveFamilyName = async () => {
       member.userId
         ? 'Removing...'
         : 'Remove'}
+    </Text>
+  </Pressable>
+)}
+
+{canRemoveChild && (
+  <Pressable
+    disabled={
+      removingChildId ===
+      member.userId
+    }
+    style={
+      styles.removeParentButton
+    }
+    onPress={() =>
+      handleRemoveChild(
+        member.userId
+      )
+    }
+  >
+    <Text
+      style={
+        styles.removeParentText
+      }
+    >
+      {removingChildId ===
+      member.userId
+        ? 'Removing...'
+        : 'Remove child'}
     </Text>
   </Pressable>
 )}

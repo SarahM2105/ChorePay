@@ -466,6 +466,67 @@ public void removeParent(
     );
 }
 
+
+@Transactional
+public void removeChild(
+        User reviewer,
+        UUID childUserId
+) {
+    FamilyMember reviewerMembership =
+            familyMemberRepository.findByUser(reviewer)
+                    .orElseThrow(() ->
+                            new NotFoundException(
+                                    "You do not belong to a family."
+                            )
+                    );
+
+    if (reviewerMembership.getRole() == FamilyRole.CHILD) {
+        throw new ForbiddenException(
+                "Children cannot remove family members."
+        );
+    }
+
+    User childUser =
+            userRepository.findById(childUserId)
+                    .orElseThrow(() ->
+                            new NotFoundException(
+                                    "Child not found."
+                            )
+                    );
+
+    FamilyMember childMembership =
+            familyMemberRepository.findByUser(childUser)
+                    .orElseThrow(() ->
+                            new NotFoundException(
+                                    "Child does not belong to a family."
+                            )
+                    );
+
+    if (!reviewerMembership
+            .getFamily()
+            .getId()
+            .equals(
+                    childMembership
+                            .getFamily()
+                            .getId()
+            )) {
+
+        throw new ForbiddenException(
+                "You cannot remove a child from another family."
+        );
+    }
+
+    if (childMembership.getRole() != FamilyRole.CHILD) {
+        throw new ForbiddenException(
+                "This member is not a removable child."
+        );
+    }
+
+    familyMemberRepository.delete(
+            childMembership
+    );
+}
+
 @Transactional
 public void transferOwnership(
         User owner,

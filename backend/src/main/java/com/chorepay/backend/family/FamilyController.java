@@ -186,4 +186,17 @@ public ResponseEntity<FamilyResponse> updateFamilyName(
     );
 }
 
+@DeleteMapping("/children/{userId}")
+public ResponseEntity<Void> removeChild(
+        @AuthenticationPrincipal User user,
+        @PathVariable UUID userId
+) {
+    familyService.removeChild(
+            user,
+            userId
+    );
+
+    return ResponseEntity.noContent().build();
+}
+
 }

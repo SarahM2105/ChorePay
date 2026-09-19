@@ -312,6 +312,31 @@ export async function removeParent(
   }
 }
 
+export async function removeChild(
+  userId: string,
+  token: string
+): Promise<void> {
+  const response = await fetch(
+    `${API_URL}/api/families/children/${userId}`,
+    {
+      method: 'DELETE',
+
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    const message = await getErrorMessage(
+      response,
+      'Could not remove child.'
+    );
+
+    throw new Error(message);
+  }
+}
+
 export async function transferOwnership(
   userId: string,
   token: string
