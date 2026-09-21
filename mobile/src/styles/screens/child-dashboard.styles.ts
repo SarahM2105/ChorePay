@@ -145,11 +145,10 @@ export const childDashboardStyles =
     },
 
     xpBarFill: {
-      width: '20%',
-      height: '100%',
-      backgroundColor: colors.primary,
-      borderRadius: 999,
-    },
+  height: '100%',
+  backgroundColor: colors.primary,
+  borderRadius: 999,
+},
 
     xpText: {
       color: colors.textMuted,

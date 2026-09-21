@@ -11,6 +11,11 @@ import {
 } from '../services/chore.service';
 
 import {
+  getMyProgress,
+  UserProgress,
+} from '../services/progress.service';
+
+import {
   useCallback,
   useState,
 } from 'react';
@@ -76,16 +81,26 @@ const [loadingAssignments, setLoadingAssignments] =
 
 const [assignmentsError, setAssignmentsError] =
   useState('');
-  /*
-   * Temporary display values.
-   * Later these will come from the
-   * progress / rewards backend.
-   */
-  const coins = 0;
-  const level = 1;
-  const xp = 0;
-  const nextLevelXp = 100;
-  const streak = 0;
+  const [
+  progress,
+  setProgress,
+] = useState<UserProgress | null>(null);
+
+const [
+  progressError,
+  setProgressError,
+] = useState('');
+
+const coins = progress?.coinBalance ?? 0;
+const level = progress?.currentLevel ?? 1;
+const xp = progress
+  ? progress.totalXp % 100
+  : 0;
+
+const nextLevelXp = 100;
+
+const streak =
+  progress?.currentStreak ?? 0;
 
   const loadFamilyState =
     useCallback(async () => {
@@ -113,6 +128,23 @@ const [assignmentsError, setAssignmentsError] =
       await getMyAssignments(token);
 
     setAssignments(results);
+
+    try {
+  setProgressError('');
+
+  const progressResult =
+    await getMyProgress(token);
+
+  setProgress(progressResult);
+} catch (err) {
+  if (err instanceof Error) {
+    setProgressError(err.message);
+  } else {
+    setProgressError(
+      'Could not load your progress.'
+    );
+  }
+}
   } catch (err) {
     if (err instanceof Error) {
       setAssignmentsError(err.message);
@@ -321,8 +353,16 @@ const activeAssignments =
                         }
                       >
                         <View
-                          style={styles.xpBarFill}
-                        />
+                        style={[
+                          styles.xpBarFill,
+                          {
+                            width: `${Math.min(
+                              Math.max(xp, 0),
+                              100
+                            )}%` as `${number}%`,
+                          },
+                        ]}
+                      />
                       </View>
 
                       <Text style={styles.xpText}>

@@ -49,6 +49,7 @@ function RootNavigator() {
       >
         <Stack.Screen name="child-dashboard" />
         <Stack.Screen name="child-chore" />
+        <Stack.Screen name="progress" />
       </Stack.Protected>
     </Stack>
   );

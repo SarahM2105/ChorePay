@@ -93,8 +93,8 @@ export function AppBottomNav({
         'bar-chart' as const,
 
       onPress: () => {
-        // Progress screen comes later.
-      },
+      router.push('/progress');
+    },
     },
 
     userType === 'PARENT'
