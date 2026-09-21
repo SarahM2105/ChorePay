@@ -491,6 +491,15 @@ const activeAssignments =
             <Pressable
               key={assignment.assignmentId}
               style={styles.questCard}
+              onPress={() =>
+                router.push({
+                  pathname: '/child-chore',
+                  params: {
+                    assignmentId:
+                      assignment.assignmentId,
+                  },
+                })
+              }
             >
               <View style={styles.questIcon}>
                 <Ionicons

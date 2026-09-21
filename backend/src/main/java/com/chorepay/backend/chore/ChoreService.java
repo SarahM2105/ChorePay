@@ -1245,9 +1245,16 @@ private ChildChoreAssignmentResponse toChildAssignmentResponse(
             assignment.getStatus(),
             participant.getParticipationStatus(),
             assignment.getCoinRewardSnapshot(),
-            assignment.getXpRewardSnapshot(),
-            assignment.getMoneyRewardPenceSnapshot(),
-            checklist,
+        assignment.getXpRewardSnapshot(),
+        assignment.getMoneyRewardPenceSnapshot(),
+
+        assignment.getChoreTemplate()
+                .isPhotoRequired(),
+
+        assignment.getChoreTemplate()
+                .isCommentRequired(),
+
+        checklist,
 
             latestSubmission == null
                     ? null

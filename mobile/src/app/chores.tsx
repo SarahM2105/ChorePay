@@ -595,6 +595,21 @@ export default function ChoresScreen() {
                         style={
                           styles.choreCard
                         }
+                        onPress={() => {
+                          if (
+                            assignment.status ===
+                            'SUBMITTED'
+                          ) {
+                            router.push({
+                              pathname:
+                                '/parent-chore-review',
+                              params: {
+                                assignmentId:
+                                  assignment.assignmentId,
+                              },
+                            });
+                          }
+                        }}
                       >
                         <View
                           style={

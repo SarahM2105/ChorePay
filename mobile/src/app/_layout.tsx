@@ -37,6 +37,7 @@ function RootNavigator() {
         <Stack.Screen name="create-chore" />
         <Stack.Screen name="family" />
         <Stack.Screen name="chores" />
+        <Stack.Screen name="parent-chore-review" />
       </Stack.Protected>
 
       {/* Child-only screens */}
@@ -47,6 +48,7 @@ function RootNavigator() {
         }
       >
         <Stack.Screen name="child-dashboard" />
+        <Stack.Screen name="child-chore" />
       </Stack.Protected>
     </Stack>
   );

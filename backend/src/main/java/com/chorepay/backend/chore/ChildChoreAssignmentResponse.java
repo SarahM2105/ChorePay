@@ -26,6 +26,10 @@ public record ChildChoreAssignmentResponse(
 
         Integer moneyRewardPence,
 
+        boolean photoRequired,
+
+        boolean commentRequired,
+
         List<ChoreChecklistItemResponse> checklist,
 
         ChoreSubmissionStatus latestSubmissionStatus,
